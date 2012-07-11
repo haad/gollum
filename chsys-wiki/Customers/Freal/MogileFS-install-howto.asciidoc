@@ -1,0 +1,437 @@
+MogileFS Installation HOWTO
+==================
+Adam Hamsik <adam.hamsik@chillisys.com>
+v0.1, April 2012: Initial installation was done on test environment.
+
+== MogileFS installation and configuration manual
+
+This document describes installation process for MogileFS filesystem.
+
+=== MogileFS Prerequisities
+
+Before we can install MogileFS on a system we need to prepare installation medias first. We use cpanp(CPANPLUS)
+and ruby fpm gem for it. I have wrote script called *gen_mogilefs_rpm.sh* which can be used to create current
+rpms from their current CPAN version.
+
+This script creates 3 RPMS which are mutual exclusive
+
+* MogileFS-Client-1.16-1.x86_64.rpm
+* MogileFS-Server-2.62-1.x86_64.rpm
+* MogileFS-Utils-2.23-1.x86_64.rpm
+
+Client rpm provides only MogileFS client files. Utils rpm provides client + administration utilities. Server rpm contains everything from Utils and Server components.
+
+==== MogileFS rpm installation
+
+To get MogileFS working we need to install it from our own rpms built in previous step. To do that we first need to have
+those rpms in our own repository. Some deps of prebuilt rpms aren't sattisfied because those modules are already included
+in base perl package.
+
+----
+yum install -y  MogileFS-Server
+----
+
+.MogileFS rpm client installation
+NOTE: Every client will require at least perl-MogileFS-Client perl-MogileFS-Utils and come connector module for client application.
+
+.MogileFS prepare MogileFS local filesystems
+
+MogileFS needs to store files somewhere, therefore we need to create filesystems for it.
+
+----
+[root@storage1 ~]# pvcreate /dev/sdb
+  Physical volume "/dev/sdb" successfully created
+[root@storage1 ~]# vgcreate mogilevg /dev/sdb
+  Volume group "mogilevg" successfully created
+[root@storage1 ~]# lvcreate -L 15G -n mogilefs-db mogilevg
+  Logical volume "mogilefs-db" created
+[root@storage1 ~]# lvcreate -L 170G -n mogilefs-data mogilevg
+  Logical volume "mogilefs-data" created
+
+[root@storage1 ~]# mkdir -p /srv/mogile/mogilefs-data
+[root@storage1 ~]# mkdir -p /srv/mogile/mogilefs-db
+[root@storage1 ~]# mkfs.ext4 /dev/mogilevg/mogilefs-data
+[root@storage1 ~]# mkfs.ext4 /dev/mogilevg/mogilefs-db
+
+[root@storage1 ~]# e4label /dev/mogilevg/mogilefs-data mogilefs-data
+[root@storage1 ~]# e4label /dev/mogilevg/mogilefs-db mogilefs-db
+
+[root@storage1 ~]# cat << EOF >>/etc/fstab
+> LABEL=mogilefs-data        /srv/mogile/mogilefs-data               ext4    defaults,noatime        1 2
+> LABEL=mogilefs-db          /srv/mogile/mogilefs-db                  ext4    defaults,noatime        1 2
+> EOF
+[root@storage1 ~]# mount -a
+----
+
+=== MogileFS Configuration
+
+==== System Init scripts
+
+We need to modify startup scripts to better fits our needs, we usually use this startup script attached bellow.
+
+.Mogstored startup script
+[source, shell]
+----
+#!/bin/bash
+
+# mogstored  This shell script controls the MogileFS storage daemon
+#
+# Author:       Ruben Kerkhof <ruben@rubenkerkhof.com>
+#
+# chkconfig:    - 97 03
+#
+# description:  MogileFS is a distributed storage system
+# processname:  mogstored
+# config: /etc/mogilefs/mogstored.conf
+#
+
+# source function library
+. /etc/rc.d/init.d/functions
+
+if [ -f /etc/sysconfig/mogstored ]; then
+        . /etc/sysconfig/mogstored
+fi
+
+docroot=${MOGILE_DIR-/var/mogdata}
+
+RETVAL=0
+
+start() {
+	echo -n $"Starting MogileFS tracker daemon: "
+	daemon --user mogstored /usr/bin/mogstored --daemon --docroot=${docroot}
+	RETVAL=$?
+	echo
+	[ $RETVAL -eq 0 ] && touch /var/lock/subsys/mogstored
+}
+
+stop() {
+	echo -n $"Stopping MogileFS tracker daemon: "
+	killproc mogstored
+	echo
+	[ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/mogstored
+}
+
+restart() {
+	stop
+	start
+}
+
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart|force-reload|reload)
+	restart
+	;;
+  condrestart)
+	[ -f /var/lock/subsys/mogstored ] && restart
+	;;
+  status)
+	status mogstored
+	RETVAL=$?
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|status|restart|reload|force-reload|condrestart}"
+	exit 1
+esac
+
+exit $RETVAL
+----
+
+.MogileFS server init scripts
+----
+[root@storage1 ~]# chkconfig --add mogilefsd
+[root@storage1 ~]# chkconfig --add mogstored
+----
+
+After creating startup script we add it's configuration to /etc/sysconfig/mogstored.
+
+----
+cat <<EOF >/etc/sysconfig/mogstored
+MOGILE_DIR=/srv/mogile/mogilefs-data
+EOF
+----
+
+Enable starting of both mogilefs daemons during system startup. In test environment database servers and storage + trackerd are running on same nodes. Therefore we need to install and start mysqld, too.
+
+===== Setting up database
+Mogilefs Tracker daemon uses database to store it's data. We need to install/setup postgresql/mysql on separate or same as tracker nodes. In production database should be clustered in a way that, tracker can always connect to it and make required changes.
+
+===== Mysql Database configuration
+
+Database is required to run mogilefs tracked server. On test environment we will setup database this way.
+
+WARNING: mysqld should not be installed on same server as storaged and trackerd, consider this during move to production phase.
+
+.Database support servers
+----
+yum install -y mysql-server
+[root@storage1 ~]# chkconfig --add mysqld
+[root@storage1 ~]# service mysqld start
+----
+
+----
+[root@storage1 ~]# mysql -u root
+mysql> CREATE DATABASE mogilefs;
+mysql> GRANT ALL ON mogilefs.* TO 'mogile'@'%';
+mysql> SET PASSWORD FOR 'mogile'@'%' = OLD_PASSWORD( 'sekrit' );
+mysql> FLUSH PRIVILEGES;
+mysql> quit
+----
+
+===== Configuring Mogilefsd/Storage daemon to use correct mysql database
+
+----
+[root@storage1 ~]# cat /etc/mogilefs/mogilefsd.conf
+db_dsn DBI:mysql:mogilefs:192.168.206.3
+db_user mogile
+db_pass sekrit
+conf_port 6001
+listener_jobs 5
+----
+
+===== Installing Postgresql
+
+We need to install latest production release of postgresql for current version of OS.
+
+.Install Postgresql database
+----
+[root@storage1 ~]# cat /etc/yum.repos.d/pgdg-91-redhat.repo
+[pgdg91]
+name=PostgreSQL 9.1 $releasever - $basearch
+baseurl=http://infra/yum/postgres-repo/rhel-6-$basearch
+enabled=1
+[root@storage1 ~]# yum install pgdg-redhat --nogpgcheck -y
+[root@storage1 ~]# yum install postgresql91 check_postgres postgresql91-devel postgresql91-python postgresql91-server postgresql91-odbc pgstat2 pg_top91
+[root@storage1 ~]# ln -sf /etc/init.d/postgresql-9.1 /etc/init.d/postgresql
+[root@storage1 ~]# chkconfig --add postgresql
+[root@storage1 ~]# cat <<EOF > /etc/sysconfig/pgsql/postgresql-9.1
+PGDATA=/srv/mogile/mogilefs-db/data
+PGLOG=/srv/mogile/mogilefs-db/pgstartup.log
+EOF
+[root@storage1 ~]# ln -sf /etc/sysconfig/pgsql/postgresql-9.1 /etc/sysconfig/pgsql/postgresql
+----
+
+
+===== Postgresql Database configuration
+
+Database is required to run mogilefs tracked server.
+
+----
+psql -d template1 -U postgres
+CREATE USER mogilefs WITH PASSWORD 'M0gileFS1';
+CREATE DATABASE mogilefs;
+GRANT ALL PRIVILEGES ON DATABASE mogilefs to mogilefs;
+----
+
+===== Configuring Mogilefsd/Storage daemon to use correct Postgresql database
+
+----
+[root@storage1 ~]# cat /etc/mogilefs/mogilefsd.conf
+db_dsn DBI:Pg:dbname=mogilefs;host=192.168.106.102
+db_user mogilefs
+db_pass M0gi1eFS
+conf_port 6001
+listener_jobs 20
+default_mindevcount = 2
+----
+
+==== MogileFS Setup
+
+===== MogileFS user creation
+
+Before we start MogileFS we need to create users first.
+
+----
+useradd -d /srv/mogile/mogilefs-data mogstored
+useradd mogilefsd
+chown -R mogstored /srv/mogile/mogilefs-data
+----
+
+Before we start daemons we need to change default limits to allow more conenctions/open files than default 1024.
+
+.Adding bigger user limits.
+----
+mogilefsd        soft    nofile          65536
+mogilefsd        hard    nofile          65536
+
+mogstored       soft     nofile         65536
+mogstored       hard     nofile         65536
+----
+
+===== Initial database setup
+
+----
+mogdbsetup --type=Postgres --dbhost=192.168.106.102 --dbname=mogilefs --dbuser=mogilefs --dbpass=M0gileFS1 --verbose --yes
+[root@storage1 ~]# mogdbsetup --dbname=mogilefs --dbuser=mogile --dbpassword=sekrit
+----
+
+===== Initial mogstored setup
+
+On every mogstore node we have to create configuration file for it.
+
+----
+cat <<EOF > /etc/mogile/mogstored.conf
+httplisten=0.0.0.0:7500
+mgmtlisten=0.0.0.0:7501
+docroot=/srv/mogile/mogilefs-data
+EOF
+----
+
+=== MogileFS startup and run
+
+Afer initial configuration we can start both mogstored and mogilefsd and add local server to mogilefs cluster.
+
+.Starting local mogilefs servers
+----
+[root@storage1 ~]# /etc/init.d/mogstored restart
+Stopping MogileFS tracker daemon:                          [  OK  ]
+Starting MogileFS tracker daemon:                          [  OK  ]
+[root@storage1 ~]# /etc/init.d/mogilefsd restart
+Stopping MogileFS tracker daemon:                          [  OK  ]
+Starting MogileFS tracker daemon:                          [  OK  ]
+----
+
+.Adding Local server to a mogilefs cluster
+----
+[root@storage1 ~]# mogadm host add storage1 --ip=192.168.206.2 --port=7500 --status=alive
+[root@storage1 ~]# mogadm host list
+storage1 [1]: alive
+  IP:       192.168.206.2:7500
+----
+
+==== Adding device to mogstored server
+
+After adding server to a cluster we need to add device to particular cluster server. To do this we use command below.
+
+NOTE: It's important to create proper directory for device on each server. For the first server we need to create directory with
+dev1 name for second dev2 etc...
+
+.Adding device to mogstored cluster
+----
+[root@storage1 ~]# mogadm device add storage1 1
+[root@storage1 ~]# mogadm device list
+storage1 [1]: alive
+                   used(G) free(G) total(G)
+  dev1: alive      0.000   0.000   0.000
+mkdir -p /srv/mogile/mogilefs-data/dev1
+----
+
+=== Adding new node to MogileFS
+
+To add new storage + tracker node to our MogileFS cluster one needs to install all required rpms. After that we need to configure and start Mogilefs services and add server to a cluster. Both nodes needs to be connecting to a shared mysql db
+cluster ip.
+
+----
+[root@storage1 ~]# cat <<EOF > /etc/mogilefs/mogilefsd.conf
+db_dsn DBI:mysql:mogilefs:192.168.206.3
+db_user mogile
+db_pass sekrit
+conf_port 6001
+listener_jobs 5
+default_mindevcount = 1
+EOF
+
+[root@storage1 ~]# /etc/init.d/mogstored start
+[root@storage1 ~]# /etc/init.d/mogilefsd start
+
+[root@storage1 ~]# mogadm host add storage1 --ip=192.168.206.2 --status=alive
+[root@storage1 ~]# mogadm device add storage1 1
+[root@storage1 ~]# mkdir -p /srv/mogile/mogilefs-data/dev2
+
+[root@storage1 ~]# mogadm check
+Checking trackers...
+  localhost:6001 ... OK
+
+Checking hosts...
+  [ 1] storage2 ... OK
+  [ 2] storage1 ... OK
+
+Checking devices...
+  host device         size(G)    used(G)    free(G)   use%   ob state   I/O%
+  ---- ------------ ---------- ---------- ---------- ------ ---------- -----
+  [ 1] dev2             5.569      4.972      0.597  89.27%  writeable   0.0
+  [ 2] dev1             5.569      4.907      0.662  88.11%  writeable   0.0
+  ---- ------------ ---------- ---------- ---------- ------
+             total:    11.139      9.879      1.260  88.69%
+----
+
+=== Changing mindevcount on a MogileFS class
+
+If mindevcount was changed on a class it's required to run fsck to resync mogilefs cluster.
+
+----
+mogadm fsck start
+mogadm class modify test testclass --mindevcount=2
+----
+
+=== Getting MogileFS stats
+
+mogstats utility is used to gather stats from mogilefs database.
+
+----
+[root@stogare02 ~]# mogstats --db_dsn="DBI:Pg:dbname=mogilefs;host=192.168.106.102" --db_user="mogilefs" --db_pass="M0gi1eFS" --verbose --stats="devices,files
+----
+
+[appendix]
+== Using memcached server with mogstored
+
+=== Install memcached
+
+First we need to install memcached before we can actually use it to cache our files.
+
+----
+[root@storage1 ~]# yum install -y memcached; chkconfig --add memcached
+[root@storage1 ~]# service memcached start
+----
+
+To get memcached properly used we need add more memory to it. In RHEL distros we just set new values in _/etc/sysconfig/memcached_.
+
+----
+PORT="11211"
+USER="memcached"
+MAXCONN="16536"
+CACHESIZE="16536"
+OPTIONS=""
+----
+
+=== Configure Mogstored to cache files in memcached
+
+After starting memcached we need to tell mogstored to connect to it and store files there.
+We use mogadm to configure mogstored for it.
+
+----
+[root@storage1 ~]# yum install -y perl-Cache-Memcached python-memcached
+[root@storage1 ~]# mogadm settings set memcache_servers 127.0.0.1:11211
+[root@storage1 ~]# mogadm settings list
+         memcache_servers = 127.0.0.1:11211
+           schema_version = 12
+----
+
+[appendix]
+
+=== TODO
+
+Stuff to remmeber and consider for usage
+
+https://github.com/firespring/mogbak
+https://github.com/stanaka/cpan-dependency
+https://github.com/jordansissel/fpm
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

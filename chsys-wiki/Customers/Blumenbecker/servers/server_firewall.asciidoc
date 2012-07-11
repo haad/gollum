@@ -1,0 +1,145 @@
+Blumenbecker firewall documentation
+===================================
+Marian Schmotzer <marian.schmotzer@chillisys.com>
+v1.0 November 2010:
+
+== General information
+|==============================================
+|**Procesor** 	   : | 2 cores of Intel(R) Xeon(R) CPU E3113  @ 3.00GHz
+|**Main memory**    : |	1Gb
+|**Virtualization** : | N/A	
+|**OS**             : | Gentoo linux
+|**Device type	    : | server 		
+|**State**	   : |in production 
+|**SLA**	   : | 24x7 monitoring
+|resolve	    | 48
+|Downtime contact  :| Andrej Schwarc
+|		    | schvarc@blumenbecker.sk
+|		    | 0907736926
+|==============================================
+
+**Relations**: None
+
+=== Storage preferences 
+
+|=============================================
+|**Raid** : | Raid ?, hardware (/dev/sda)
+|**Lvm**  : | Yes
+|PV	    | sda3
+|VG	    | name vg01
+|LV	    | LV names: usr,tmp,swap,var,data(user data)
+|LV usr	    | /usr
+|LV tmp     | /tmp
+|LV var     | /var
+|=============================================
+
+=== Network preferences
+
+|=============================================
+|**wan** : | 
+|IP0 	    | 62.168.77.36
+|IP1	    | 62.168.77.37
+|MAC 	    | 00:22:19:80:C9:71
+|**DNS** :  | mail2.blumenbecker.sk(62.168.77.37)
+|**Special**:| ssh login allowed only on IP0
+|	     | IP0 enabled routing via sysctl.conf, NAT of trafic from lan
+|	     | IP1 used for port redirection to mail.blumenbecker.sk(internal dns) and NAT of it
+
+|=============================================
+
+|=============================================
+|**lan** : | 
+|IP0 	    | 192.168.129.2
+|IP1 	    | 192.168.129.1
+|IP2 	    | 192.168.254.1
+|MAC 	    | 00:1d:09:11:86:1e
+|**DNS** :  | n/a
+|**Special**:| IP0 is only for compatibility with previous firewall
+|	     | IP1 default gw for all lan devices
+|            | IP2 management network to connect to IPMI server interfaces
+|=============================================
+
+[options="header"
+|=============================================
+2+ |Remote access 
+|**Special**:| Only ssh
+|=============================================
+=== Installed programs/services
+
+
+[options="header"]
+|=============================================
+2+| Squid
+|Descr      | Proxy server
+|Function   | Caching of web sites from internet
+|Components | N/A
+|Special    | Listens only on lan(all IPs), transparent proxy
+|=============================================
+
+[options="header"]
+|=============================================
+2+| postfix 
+|Descr      | Mail distribution system
+|Function   | Sending mail notifications from os, audit and monitoring tools
+|Components | n/a
+|Special    | Listens only on localhost
+|=============================================
+
+
+[options="header"]
+|=============================================
+2+| dhcpd 
+|Descr | dhcp server
+|Function   | assings IP to clients from range 192.168.129.30-254
+|Components | n/a
+|Special    | 
+|=============================================
+
+[options="header"]
+|=============================================
+2+| ipsec tools/racoon
+|Descr | provide ipsec tunnels
+|Function   | Connects local lan to remote sites CZ(192.168.0-128.0)schwarc home(192.168.3.0)
+|Components | n/a
+|Special    | it is iptable rule to don't mask(NAT) packets with destination of 192.168.0.0/16(ipsec tunnels)
+|	    | going out by wan interface with its ip
+|	    | and rules to accept all trafic from 192.168.0.0/17 comming from wan in INPUT and FORWARD chains
+|	    | without these rules ipsec don't work correctly
+|=============================================
+
+|=============================================
+2+| openvpn
+|Descr | provide openvpn tunnels
+|Function   | tunnels for clients (roadwarriors) with correct certificate 
+|Components | n/a
+|Special    | Using tap0 device
+|=============================================
+
+[options="header"]
+|=============================================
+2+| Bind(named)
+|Descr | Dns server
+|Function   | Resolves DNS names to ip
+|Components | n/a
+|Special    | Used for internal resolution of names in domain blumenbecker.sk(defined in /etc/bind/pri/blumenbecker.sk.zone)
+|	    | Used for resolution of all DNS names (only internal lan clients)
+|=============================================
+
+=== Special
+
+Iptables rules to provide ftp access to fileserver.blumenbecker.sk
+-A FORWARD -s 192.168.129.12/32 -i wan -p udp -m multiport --sports 20,21,989,990,60000:60010 -m comment --comment "DNAT to ftp on fileserver" -j ACCEPT 
+-A FORWARD -s 192.168.129.12/32 -i wan -p tcp -m multiport --sports 20,21,989,990,60000:60010 -m comment --comment "DNAT to ftp on fileserver" -j ACCEPT 
+-A FORWARD -d 192.168.129.12/32 -i wan -p tcp -m multiport --dports 20,21,989,990,60000:60010 -m comment --comment "DNAT to ftp on fileserver" -j ACCEPT 
+-A PREROUTING -d 62.168.77.36/32 -i wan -p tcp -m multiport --dports 20,21,990,989,60000:60010 -m comment --comment "DNAT to ftp on fileserver" -j DNAT --to-destination 192.168.129.12 
+
+Iptables rules related to redirecting and allowing ipsec tunnels:
+-A FORWARD -s 192.168.0.0/17 -j ACCEPT 
+-A INPUT -p udp -m udp --dport 500 -m state --state NEW -j ACCEPT 
+-A INPUT -p esp -j ACCEPT 
+-A POSTROUTING -d ! 192.168.0.0/16 -o wan -j SNAT --to-source 62.168.77.36 (192.168.0.0/16 exckuded from NATing)
+
+Iptables rules releated to mail.blumenbecker.sk
+-A PREROUTING -d 62.168.77.37/32 -i wan -p tcp -m multiport --dports 25,80,110,143,993,995,443,465 -j DNAT --to-destination 192.168.129.6 
+-A FORWARD -i wan -p tcp -m multiport --dports 25,80,110,143,993,995,443,465 -j ACCEPT 
+

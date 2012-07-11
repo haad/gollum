@@ -1,0 +1,24 @@
+Chilli Systems Password management utility
+==========================================
+Adam Hamsik <adam.hamsik@chillisys.com>
+v1.0, November 2011:
+Initial proposal version.
+
+== Chillisys-pass utility
+
+This tool should be used to share passwords between chillisystem employees.
+Tool works with binary database called vault. There are 2 versions of database
+
+* version 3
+* version 4
+
+=== Version 3
+
+Supports only one master password, which can be used to decrypt password vault
+entries. This format of vault can be used in many external tools and is
+described in docs/formatV3.txt. It's based on initial version of Loxodo and
+which was based on initial work by PasswordSafe project.
+
+=== Version 4
+
+

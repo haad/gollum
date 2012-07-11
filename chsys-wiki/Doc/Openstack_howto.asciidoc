@@ -1,0 +1,142 @@
+Gentoo Openstack nova HOWTO
+===========================
+Adam Hamsik <adam.hamsik@chillisys.com>
+v1.0, August 2010:
+Initial proposal version.
+
+
+== Openstack Nova Installation 
+
+=== Openstack Nova Prerequisities
+
+Install needed tools we need to use some gentoo overlays therefore install layman + git
+
+emerge layman git screen nginx bzr 
+
+==== Getting layman work 
+
+Install layman, change layman.cfg to point storage to /usr/local/portage then source to get all new ebuilds working source /usr/local/portage/make.conf .
+
+==== Nova dependencies
+
+Add git clone http://git.ossdl.de/r/ossdl-overlay.git ossdl to /usr/local/portage then add this line to /etc/make.conf
+
+PORTDIR_OVERLAY="/usr/local/portage/ossdl"
+
+Install new overlay dev-zero
+
+layman -a dev-zero
+
+=== Nova packages 
+
+==== nova-python 
+
+List of Nova-python deps from a dep file 
+
+Depends: python (>= 2.6),  aoetools, vlan, python-ipy, python-boto, python-m2crypto, python-pycurl, python-twisted-core, python-twisted-web, python-daemon, python-redis, python-carrot, python-lockfile, python-gflags, python-tornado, python-libxml2, python-ldap
+Filename: pool/main/n/nova/python-nova_0.9.1~r267-0ubuntu0ppa1~lucid1_all.deb
+
+-------
+ubuntu				-> 		gentoo 
+aoetools			->		sys-block/aoetools
+vlan				->		??? => http://packages.ubuntu.com/dapper/vlan
+python-ipy			->		dev-python/ipy
+python-boto 		-> 		dev-python/boto
+python-m2crypto 	->		dev-python/m2crypto
+python-pycurl		-> 		dev-python/pycurl
+python-daemon 		-> 		dev-python/python-daemon
+python-redis		-> 		dev-python/redis-py
+python-carrot		-> 		??? => http://pypi.python.org/pypi/carrot/0.4.0
+python-lockfile		->		dev-python/lockfile
+python-gflags		->		??? => http://code.google.com/p/python-gflags
+python-libxml2 		-> 		dev-libs/libxml2 [USE: python]
+python-twisted-core ->		dev-python/twisted
+python-tornado 		->		dev-python/tornado
+python-ldap			->		dev-python/python-ldap
+-------
+==== nova-volume
+
+Depends: nova-common (= 0.9.1~r267-0ubuntu0ppa1~lucid1), vblade, vblade-persist, python (>= 2.6)
+
+-------
+ubuntu				-> 		gentoo
+vblade 				->		sys-block/vblade
+-------
+
+==== nova-compute
+
+Depends: nova-common (= 0.9.1~r267-0ubuntu0ppa1~lucid1), kpartx, kvm, python-libvirt, libvirt-bin (>= 0.7.5), curl, parted, python (>= 2.6)
+
+==== Change make.conf
+
+Add ~amd64 keyword so we can build needed tools
+
+-------
+cat <<EOF >/etc/portage/package.keywords
+
+dev-db/redis ~amd64
+net-misc/rabbitmq-server ~amd64
+
+chs-local/euca2ools ~amd64
+dev-python/pymox ~amd64
+
+EOF
+-------
+
+
+==== Install needed tools 
+
+Use emerge to install all needed prerequisites 
+
+-------
+# emerge dev-db/redis rabbitmq-server euca2ools redis-py pymox unzip parted
+
+
+emerge dev-python/pymox bazaar git redis-python
+-------
+
+Nova installation script 
+
+-------
+http://github.com/vishvananda/novascript/blob/master/nova.sh
+-------
+
+Nova gentoo running error
+
+-------
+  File "/root/novascript/nova/bin/nova-manage", line 74, in <module>
+    from nova.cloudpipe import pipelib
+  File "/root/novascript/nova/nova/cloudpipe/pipelib.py", line 35, in <module>
+    from nova.endpoint import api
+  File "/root/novascript/nova/nova/endpoint/api.py", line 41, in <module>
+    from nova.endpoint import cloud
+  File "/root/novascript/nova/nova/endpoint/cloud.py", line 35, in <module>
+    from nova import rpc
+  File "/root/novascript/nova/nova/rpc.py", line 46, in <module>
+    class Connection(carrot_connection.BrokerConnection):
+AttributeError: 'module' object has no attribute 'BrokerConnection'
+Traceback (most recent call last):
+  File "/root/novascript/nova/bin/nova-manage", line 74, in <module>
+    from nova.cloudpipe import pipelib
+  File "/root/novascript/nova/nova/cloudpipe/pipelib.py", line 35, in <module>
+    from nova.endpoint import api
+  File "/root/novascript/nova/nova/endpoint/api.py", line 41, in <module>
+    from nova.endpoint import cloud
+  File "/root/novascript/nova/nova/endpoint/cloud.py", line 35, in <module>
+    from nova import rpc
+  File "/root/novascript/nova/nova/rpc.py", line 46, in <module>
+    class Connection(carrot_connection.BrokerConnection):
+AttributeError: 'module' object has no attribute 'BrokerConnection'
+Traceback (most recent call last):
+  File "/root/novascript/nova/bin/nova-manage", line 74, in <module>
+    from nova.cloudpipe import pipelib
+  File "/root/novascript/nova/nova/cloudpipe/pipelib.py", line 35, in <module>
+    from nova.endpoint import api
+  File "/root/novascript/nova/nova/endpoint/api.py", line 41, in <module>
+    from nova.endpoint import cloud
+  File "/root/novascript/nova/nova/endpoint/cloud.py", line 35, in <module>
+    from nova import rpc
+  File "/root/novascript/nova/nova/rpc.py", line 46, in <module>
+    class Connection(carrot_connection.BrokerConnection):
+AttributeError: 'module' object has no attribute 'BrokerConnection'
+--------

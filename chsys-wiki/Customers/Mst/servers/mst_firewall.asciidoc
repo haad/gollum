@@ -1,0 +1,168 @@
+mstpartners.mstpartners.sk server documentation
+===============================================
+Adam Hamsik <adam.hamsik@chillisys.com>
+v1.0 Jun 2011:
+
+== General information
+[halign="center"]
+|==============================================
+|**Procesor** 	    : | 4 cores of Intel(R) Xeon(R) CPU           X3430  @ 2.40GHz
+|**Main memory**    : |	4046372 kB	
+|**Virtualization** : | 
+|**Hostname**       : | mstpartners.mstpartners.sk
+|**OS**             : | Gentoo linux
+|**Device type	    : | Server 		
+|**State**	    : | Moved to production Wed Jun 15 17:13:45 CEST 2011
+|**SLA**	    : | 24x7 monitoring
+|resolve	    : | 24 
+|==============================================
+
+**Relations**: 
+
+== Storage preferences
+
+=== Software RAID description
+[halign="center"]
+|=============================================
+|RAID device|RAID type|RAID backend devices
+|**md3**   | raid1 | sdb3[1] sda3[0]
+|**md1**   | raid1 | sda1[0] sdb1[1]
+|**md2**   | raid1 | sda2[0] sdb2[1]
+|=============================================
+
+=== Logical Volume Manager description
+
+==== LVM PV Description
+[halign="center"]
+|=============================================
+|PV Name|PV UUID|Device Size| VG Name
+|/dev/md3|KepHvL-wZcD-z4ZO-c4CY-FCAG-Ot1r-OnxU04|463.64g|vg00
+|=============================================
+
+==== LVM VG Description
+[halign="center"]
+|=============================================
+|VG Name|VG UUID|VG Size|PV Count|LV Count
+|vg00|ogfqvM-ZbeE-MTiQ-CAdM-bCuT-4FgC-imBZqi|463.64g|1|6
+|=============================================
+
+==== LVM LV Description
+[halign="center"]
+|=============================================
+|VG Name|LV Name|LV uuid|LV size|PV name
+| vg00 | swap | HJHOZk-rU5P-pfDA-L7Wp-NBnU-4LaJ-57LuZQ| 4.00g | /dev/md3
+| vg00 | usr | cN7PpT-EOAW-YjoZ-Ri07-dyH1-S0pY-USTznR| 10.00g | /dev/md3
+| vg00 | var | fdZziZ-Swb9-sahh-LLVc-Brjg-hQl8-sRZggX| 5.00g | /dev/md3
+| vg00 | tmp | danvd3-vPcH-Mr0c-dM7u-jEt1-31D1-NfeYHc| 500.00m | /dev/md3
+| vg00 | home | emmrow-8JeM-3jpb-vNaN-dMEq-BWPo-aCgPfL| 5.00g | /dev/md3
+| vg00 | srv | 12YNqH-HkyV-Goub-DSeo-Flt5-Efqc-J6wvz8| 370.00g | /dev/md3
+|=============================================
+
+=== File-systems, Mountpoints description
+[halign="center"]
+|=============================================
+|Device|Mount point|File system type| File system size
+| /dev/md1    | /boot | ext3 | 2.0G
+| /dev/md2    | / | ext3 | 2.0G
+| /dev/vg00/swap    2+| partition | 4194300
+| /dev/vg00/usr    | /usr | ext3 | 9.9G
+| /dev/vg00/var    | /var | ext3 | 5.0G
+| /dev/vg00/tmp    | /tmp | ext3 | 485M
+| /dev/vg00/srv    | /srv | ext3 | 365G
+| /dev/vg00/home    | /home | ext3 | 3.3G
+|=============================================
+
+=== Network description
+
+==== Network Interfaces description
+===== bond0
+[halign="center"]
+|=============================================
+|**bond0**      | 
+|IP            | 
+|Netmask       | 255.0.0.0
+|MAC           | 00:00:00:00:00:00
+|**DNS**       | mstpartners.mstpartners.sk
+|**Special**   |
+|=============================================
+
+===== dummy0
+[halign="center"]
+|=============================================
+|**dummy0**      | 
+|IP            | 
+|Netmask       | 255.0.0.0
+|MAC           | b6:1e:51:fe:ec:b7
+|**DNS**       | mstpartners.mstpartners.sk
+|**Special**   |
+|=============================================
+
+===== eth0
+[halign="center"]
+|=============================================
+|**eth0**      | 
+|IP            | 10.0.1.2
+|Netmask       | 255.0.0.0
+|MAC           | b4:99:ba:5c:00:85
+|**DNS**       | mstpartners.mstpartners.sk
+|**Special**   |
+|=============================================
+
+===== tap0
+[halign="center"]
+|=============================================
+|**tap0**      | 
+|IP            | 10.0.254.1
+|Netmask       | 255.0.0.0
+|MAC           | 2a:b4:46:aa:4e:24
+|**DNS**       | mstpartners.mstpartners.sk
+|**Special**   |
+|=============================================
+
+==== Network Firewall rules description
+
+------
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain PREROUTING (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain POSTROUTING (policy ACCEPT)
+target     prot opt source               destination         
+------
+
+==== Network Routes description
+
+------
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface
+10.0.254.0      0.0.0.0         255.255.255.0   U         0 0          0 tap0
+10.0.0.0        0.0.0.0         255.0.0.0       U         0 0          0 eth0
+127.0.0.0       127.0.0.1       255.0.0.0       UG        0 0          0 lo
+0.0.0.0         10.0.1.1        0.0.0.0         UG        0 0          0 eth0
+------
+
+== Services 
+
+=== Daemons
+
+=== WebApps
+
+== Special
+
+=== Connecting
+
+== Contacts

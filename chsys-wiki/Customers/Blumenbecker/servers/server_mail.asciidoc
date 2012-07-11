@@ -1,0 +1,142 @@
+Blumenbecker mail documentation
+===============================
+Marian Schmotzer <marian.schmotzer@chillisys.com>
+v1.0 November 2010:
+
+== General information
+|==============================================
+|**Procesor** 	   : | Intel(R) Xeon(R) CPU E3113  @ 3.00GHz
+|**Main memory**    : |	1Gb
+|**Virtualization** : | Xen Virtual Machine 	
+|**OS**             : | Gentoo linux
+|**Device type	    : | server 		
+|**State**	   : |in production 
+|**SLA**	   : | 24x7 monitoring
+|resolve	    | 48
+|Downtime contact  :| Andrej Schwarc
+|		    | schvarc@blumenbecker.sk
+|		    | 0907736926
+|==============================================
+
+**Relations**: Xen DomU at xen.blumenbecker.sk(192.168.129.3)
+
+=== Storage preferences 
+
+|=============================================
+|**Raid** : | Raid 5(hardware) at dom0
+|**Lvm**  : | no
+| sda1      | /
+| sda3	    | /usr
+| sda4      | /var
+| sda5      | /tmp
+| sda6      | /opt
+|=============================================
+
+=== Network preferences
+
+|=============================================
+|**eth0** : | 
+|IP	    | 192.168.129.6
+|MAC 	    | 00:16:3e:00:00:02
+|**DNS** :  | mail.blumenbecker.sk(internal DNS)
+|**Special**:| 
+|=============================================
+
+[options="header"
+|=============================================
+2+ |Remote access 
+|**Special**:| Xen console at xen.blumenbecler.sk
+|=============================================
+=== Installed programs/services
+
+
+[options="header"]
+|=============================================
+2+| apache2
+|Descr      | Http server
+|Function   | Provide webaplication squirrelmail, postfixadmin,  
+|Components | N/A
+|Special    | Forwarding /funambol to funambol 
+|**squirellmail  webapp** | Webmail interface
+|Function   | Provide access to mails for blumenbecker.sk
+|Components | n/a
+|URL	    | http://mail.blumenbecker.sk/squirrelmail (default no vhosts defined)
+|Special    | Aplication at /var/www/localhost/htdocs/squirrelmail
+|**postfixadmin webapp** | Managing mail accounts
+|Function   | Adding users,aliases and other user management of mail users
+stored at postgresql
+|Components | n/a
+|URL	    | http://mail.blumenbecker.sk/postfixadmin (default no vhosts defined)
+|Special    | Aplication at /var/www/localhost/htdocs/postfixadmin
+|=============================================
+
+[options="header"]
+|=============================================
+2+| postfix 
+|Descr      | Mail distribution system
+|Function   | Sending mail for domain blumenbecker.sk
+|Components | n/a
+|Special    | Sending mails to amavis for spam and antivirus control
+|	    | Using postgrey to greylisting (antispam technology)
+|	    | Authentification with saslauthd against postgresql database
+|=============================================
+
+
+[options="header"]
+|=============================================
+2+| postgrey
+|Descr | mail graylisting
+|Function   | Graylisting incoming mails (only from remote mail servers)
+|Components | n/a
+|Special    | 
+|=============================================
+
+[options="header"]
+|=============================================
+2+| dovecot
+|Descr | Imap/POP3 server
+|Function   | Imap/POP3 services for users in blumenbecker
+|Components | n/a
+|Special    | Authentification with saslauthd against postgresql database
+|=============================================
+
+|=============================================
+2+| clamav
+|Descr | antivirus
+|Function   | scans incoming mails for viruses 
+|Components | n/a
+|Special    | 
+|=============================================
+
+[options="header"]
+|=============================================
+2+| funambol
+|Descr | Synchronization between mail clients
+|Function   | Synchronization of contacts,calendars, events etc. between
+devices
+|Components | n/a
+|Special    | Manged by GUI accessible by VNC(users are in internal db,managed
+by mr schwarc)
+|	    | Vnc must start before Funambol
+|=============================================
+
+[options="header"]
+|=============================================
+2+| tightVNC
+|Descr | Remote desktop access
+|Function   | X server emulation for managing funambol management GUI
+|Components | n/a
+|Special    | 
+|=============================================
+
+[options="header"]
+|=============================================
+2+| Postgresql
+|Descr | Rational database
+|Function   | storing user mail accounts, domain informations 
+|Components | n/a
+|Special    | 
+|=============================================
+
+=== Special
+

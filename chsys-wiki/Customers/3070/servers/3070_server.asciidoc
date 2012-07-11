@@ -1,0 +1,177 @@
+server.3070.local server documentation
+======================================
+Adam Hamsik <adam.hamsik@chillisys.com>
+v1.0 May 2012:
+
+== General information
+[halign="center"]
+|==============================================
+|**Procesor** 	    : | 2 cores of Intel(R) Atom(TM) CPU D525   @ 1.80GHz
+|**Main memory**    : |	4062580 kB
+|**Virtualization** : |
+|**Hostname**       : | server.3070.local
+|**OS**             : | Gentoo linux
+|**Device type	    : | Server
+|**State**	    : |  Moved to production Sun Jan  8 02:48:07 CET 2012
+|**SLA**	    : | 24x7 monitoring
+|resolve	    : | 24
+|public IP		: | 213.160.183.85
+|==============================================
+
+**Relations**:
+
+== Storage preferences
+
+=== Software RAID description
+[halign="center"]
+|=============================================
+|RAID device|RAID type|RAID backend devices
+|**md127**   | raid5 | sda3[0] sdc3[3] sdb3[4]
+|**md1**   | raid5
+raid1 | sda3[0] sdc3[3] sdb3[4]
+sdc1[2] sdb1[1] sda1[0]
+|**md2**   | raid1 | sdc2[2] sdb2[1] sda2[0]
+|=============================================
+
+=== Logical Volume Manager description
+
+==== LVM PV Description
+[halign="center"]
+|=============================================
+|PV Name|PV UUID|Device Size| VG Name
+|/dev/md127|3mhd6g-WE3c-OXPo-fKur-QSt9-wVa2-rchXmF|1.82t|vg00
+|=============================================
+
+==== LVM VG Description
+[halign="center"]
+|=============================================
+|VG Name|VG UUID|VG Size|PV Count|LV Count
+|vg00|QIeVi5-UqQp-OW0Z-Dv9Z-mtFa-QFKe-euul8D|1.82t|1|5
+|=============================================
+
+==== LVM LV Description
+[halign="center"]
+|=============================================
+|VG Name|LV Name|LV uuid|LV size|PV name
+| vg00 | swap | 6SvY5z-elmg-aSte-5ylf-TTiM-bdkQ-jWGag6| 4.00g | /dev/md127
+| vg00 | usr | jI4gQz-lNeN-7wgR-Zd3n-XdZz-gK5q-E44WRD| 7.00g | /dev/md127
+| vg00 | var | Zf5hc9-Pgkk-eHuW-FZo6-pQtY-zwxj-FGGAzY| 5.00g | /dev/md127
+| vg00 | log | aRMecg-5xz9-Eanx-kyJ8-0C7w-MeE1-xXDchI| 2.00g | /dev/md127
+| vg00 | srv | nX74d4-6HKU-cl8k-ocoM-kclJ-qF4P-cq6wgx| 1.79t | /dev/md127
+| vg00 | usr | jI4gQz-lNeN-7wgR-Zd3n-XdZz-gK5q-E44WRD| 7.00g | /dev/md127
+|=============================================
+
+=== File-systems, Mountpoints description
+[halign="center"]
+|=============================================
+|Device|Mount point|File system type| File system size
+| /dev/md1    | /boot | ext4 | 2.0G
+| /dev/md2    | / | ext4 | 2.0G
+| /dev/vg00/swap    2+| partition | 4194300
+| /dev/vg00/usr    | /usr | ext4 | 6.9G
+| /dev/vg00/var    | /var | ext4 | 5.0G
+| /dev/vg00/tmp    | /tmp | ext4 | 2.0G
+| /dev/vg00/srv    | /srv | ext4 | 1.8T
+| /dev/vg00/log    | /var/log | ext4 | 2.0G
+|=============================================
+
+=== Network description
+
+==== Network Interfaces description
+===== eth0
+[halign="center"]
+|=============================================
+|**eth0**      |
+|IP            | 192.168.254.2
+|Netmask       | 255.255.255.0
+|MAC           | 00:25:90:34:be:b0
+|**DNS**       | server.3070.local
+|**Special**   |
+|=============================================
+
+===== eth1
+[halign="center"]
+|=============================================
+|**eth1**      |
+|IP            | 192.168.2.2
+|Netmask       | 255.255.255.0
+|MAC           | 00:25:90:34:be:b1
+|**DNS**       | server.3070.local
+|**Special**   |
+|=============================================
+
+===== eth1:1
+[halign="center"]
+|=============================================
+|**eth1:1**      |
+|IP            | 192.168.2.1
+|Netmask       | 255.255.255.0
+|MAC           | 00:25:90:34:be:b1
+|**DNS**       | server.3070.local
+|**Special**   |
+|=============================================
+
+===== tap0
+[halign="center"]
+|=============================================
+|**tap0**      |
+|IP            | 172.16.21.1
+|Netmask       | 255.255.255.0
+|MAC           | 62:ad:3b:b1:fe:58
+|**DNS**       | server.3070.local
+|**Special**   |
+|=============================================
+
+==== Network Firewall rules description
+
+------
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination
+
+Chain PREROUTING (policy ACCEPT)
+target     prot opt source               destination
+DNAT       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:2224 to:192.168.2.97:22
+
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination
+
+Chain POSTROUTING (policy ACCEPT)
+target     prot opt source               destination
+MASQUERADE  all  --  0.0.0.0/0            0.0.0.0/0
+------
+
+==== Network Routes description
+
+------
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface
+0.0.0.0         192.168.254.1   0.0.0.0         UG        0 0          0 eth0
+127.0.0.0       127.0.0.1       255.0.0.0       UG        0 0          0 lo
+172.16.21.0     0.0.0.0         255.255.255.0   U         0 0          0 tap0
+192.168.2.0     0.0.0.0         255.255.255.0   U         0 0          0 eth1
+192.168.254.0   0.0.0.0         255.255.255.0   U         0 0          0 eth0
+------
+
+== Services
+
+=== Daemons
+
+=== WebApps
+
+== Special
+
+=== Connecting
+
+== Contacts
+
+
+

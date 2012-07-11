@@ -1,0 +1,349 @@
+Innovatrics backup project documentation
+=======================================
+Marian Schmotzer <marian.schmotzer@chillisys.com>
+v0.9, September 2010:
+Initial proposal version.
+
+
+== Project goals 
+
+Initial goals in this project :
+
+* backup of data located on server.innovatrics.local (svn, wiki, samba shares, git)
+
+* backup of disk images of virtual machines on XenServer
+
+* email notification about backup statuses
+
+* web interface to run backup manualy check backups statuses
+
+* documentation of restore procedure, add client procedures
+
+Goals added during realization
+* backup of operating systems on servers included in backup settings
+
+
+== Realization steps 
+
+List of steps which were accomplished to achieve defined goals:
+
+* install additional two disk drives to XenServer
+
+* make redudant storage for backup with RAID technology
+
+* create virtual machine backup.innovatrics.local on XenServer
+
+* install linux on backup.innovatrics.local virtual machine
+
+* install and configure bacula backup software and support software
+
+* install and configure bacula clients on servers server.innovatrics.local and xenserver
+
+* create backup schedule , jobs , pools.
+
+* test instalation and correct problems during test window which last for one month
+
+* install web interface at http://backup.innovatrics.local/bweb
+
+* create documentation
+
+== Realization
+
+During first step two harddisks were added to XenServer. 
+List of added harddisks :
+
+* 1000 Gb Samsung Barracuda ST31000528AS (sdb)
+
+* 1000 Gb Seagate Barracuda ST31000340NS (sdd)
+
+On both disks was created one partition with size of 1000Gb
+ and type 'Linux AutoRaid'.
+These disk partitions were added to RAID 1 (mirroring). Raid device is md0.
+There was created physical volume on md0. On this physical volume was created volume group 
+VG_XenStorage-aca5afe3-18c0-8cc6-69b8-e40e6d0fea82 on it.
+
+Volume group was divided into two logical volumes backup_sys (VHD-fb24f93f-02ec-4db7-bfe8-597f098efca6)
+and backup_data(VHD-74c0caac-0503-4540-842c-23819bcec0e0). 
+
+image:backup_setup.png["Storage diagram", height="85%",width="85%"]
+
+There was created virtual machine named backup on XenServer with:
+
+* One cpu
+
+* 512 Mb of ram
+
+* two disks sda(backup_sys on XenServer) and sdb(backup_data on XenServer)
+
+Gentoo linux was installed on this virtual machine with parameters:
+
+* IP 192.168.1.3
+
+* Hostname backup.innovatrics.local
+
+* partitions on sda - sda1(/boot), sda2(swap), sda3(/)
+
+* partitions on sdb - sdb1(/var/backup)
+
+all parameters are listed in appendix.
+
+On server were installed all components of bacula(dir, sd, fd). Catalog of files is stored in 
+PostgreSQL database called bacula.
+
+Bacula storage daemon was configured to use directory _/var/backup_ as storage for backed up files.
+Every server has own pool(storage with files as tape emulation).
+On server.innovatrics.local was installed bacula-fd client from
+standard portage repository, but on XenServer bacula package wasn't in Citrix
+repository. There was used package from RedHat 5, rpm files are stored in
+_/root/backup_instalation/_, and it was added entry to resolve
+backup.innovatrics.local into _/etc/hosts_ file.
+
+image:backup-network.png["Network diagram",height="70%",width="70%"]
+
+During backup planning were created these backup filesets (list of
+files/directories to backup)
+
+.TABLE OF FILESETS
+[options="header"]
+|=============================================
+| Backup jobs |                             
+|**XenServer**| Backups whole xenserver os
+|shedule      | full - first friday in month at 23.10
+|             | incremental - every friday at 23.10
+|**XenServerIsos**| Backups logical volumes with virtual hosts data only from
+VG_XenStorage-f065e638-9585-f66a-e916-e641b73d82fb volumegroup
+|shedule      | full - first friday in month at 23.10
+|             | incremental - every friday at 23.10
+|**Server**   | Backups whole server os ,but without /var/data directory
+|shedule      | full - first friday in month at 23.10
+|             | incremental - every friday at 23.10
+|**ServerData**| Backups /var/data directory, user data are stored here
+|shedule       | full - every friday at 23.10
+|              | incremental - every day at 23.10
+|=============================================
+
+After successful configuration testing was performed for period of one month.
+During these period few problems were found and fixed.
+To perform basic tasks such as running backup, monitorig running backups and
+backup history, monitoring storage pools, adding media to pools, bweb
+web intreface was installed.
+
+Mail notifications about backup success/failure/problems are sent to email
+adresses: _support@chillisys.com_ and _administration_internal@innovatrics.com.
+
+== Performing basic backup tasks
+In this section handling of basic backup tasks will be shown. If it is possible
+both ways to perform task will be discused(by bweb interface and also by
+bconsole or configuration update). If it isn't possible only bconsole or configuration
+update way will be shown.
+[NOTE]
+To work with bconsole, issue command bconsole as root on
+backup.innovatrics.com
+
+=== Installing new client
+
+First of all you need to install bacula-fd software. In gentoo issue 
+command _USE=client-only emerge bacula_ . Next step is to modify backup
+director configuration file _/etc/bacula/bacula-dir.conf_ . At the end of this file
+add client configuration lines. Here are example lines :
+.Example
+------------------------------------------------------------------------------------------------
+Client {
+  Name = server.name-fd # put here client DNS name(or hostname) folowed by -fd
+  Address = 192.168.1.1 # put here client ip
+  FDPort = 9102 # default port don't change
+  Catalog = MyCatalog # default catalog don't change
+  Password = "Put here password string" # put here some password string, 
+  					# example 2abcdefghijaIpti65pzm7l3gxO3BWA2asVSQJjkLeZJ 
+  File Retention = 10 days # how long to store files from this host 
+  Job Retention = 1 months # how long to store data in job from this host
+  AutoPrune = yes # clean old data 
+}
+------------------------------------------------------------------------------------------------
+At client side is necessary to have configuration file for bacula-fd (ussualy
+_/etc/bacula/bacula-fd.conf_), here is example:
+
+.Example
+------------------------------------------------------------------------------------------------
+Director {
+  	Name = backup.innovatrics.local-dir
+  	Password = "Put here password string" # put here password string (same
+					      # in director configuration file)
+	}
+FileDaemon {
+ 	Name = server.name-fd #put here client DNS name(or
+					   # hostname) folowed by -fd (same as
+					   # in director configuration)
+	WorkingDirectory = /var/lib/bacula # default 
+	Pid Directory = /var/run           # default
+	Maximum Concurrent Jobs = 10       # default
+}
+Messages {
+	Name = Standard 
+	director = backup.innovatrics.local-dir = all, !skipped,!restored
+}
+
+----------------------------------------------------------------------------------
+After configuration is written start bacula-fd and issue comand _reload_ in 
+bconsole
+
+=== Creating new backup job, fileset or/and schedule
+To make backup job you need client, fileset, schedule and pool. The best 
+way is to use preconfigured ones but sometimes none isn't ussable.
+[NOTE]
+Anytime you want to load modified director configuration file issue
+_reload_ command in bconsole.
+
+[WARNING]
+During setup we created naming convention. Please look at director configuration
+file for examples and adopt it.
+
+==== Fileset
+Fileset is list of files to be backed up. If you specify directory, it will
+be backed up all directories and files in any directory depth under it. Only
+exception is if there is mounted another filesystem in directory, it will not be backed up 
+automaticly. 
+To create new fileset modify bacula director configuration file(_/etc/bacula/bacula-dir.conf_) 
+on backup server backup.innovatrics.local by adding your fileset configuration. 
+Here is example :
+.Example
+------------------------------------------------------------------------------------------------
+FileSet {
+  Name = "FilesetName" #Uniqe name of fileset
+  Include {
+    Options {
+      signature = MD5  # Signature to compare files in backup with client files default value
+      compression = GZIP # Compresion type
+    }
+    File = /     # Included directories 
+    File = /usr
+    File = /var
+    File = /home
+    File = /opt
+  }
+
+  Exclude {
+    File = /var/lib/bacula # Exluded directories 
+    File = /dev
+    File = /proc
+    File = /tmp
+    File = /.journal
+    File = /.fsck
+  }
+}
+-----------------------------
+
+
+==== Schedule
+Schedule defines when backup job has to start. 
+To create new schedule, modify bacula director configuration file(_/etc/bacula/bacula-dir.conf_)                     
+on backup server backup.innovatrics.local by adding your shedule configuration.
+Here is an example
+
+.Example
+------------------------------------------------------------------------------------------------
+Schedule {
+  Name = "SheduleName" #unique name of schdule item
+  Run = Level=Full 1st Fri at 23:05 #level of backup and when it have to run
+				    #this one runs on every 1st Friday in month at 23:00 
+  Run = Level=Incremental 2nd-5th Fri at 23:05 #level of backup and when it have to run
+}
+------------------------------
+Level variable can gain these values:
+
+* Full - backup all files and directories
+
+* Incremental - backup all changed files from last backup.
+
+* Differencial - backup all changed files from last *Full* backup
+
+==== Pool and media
+Pool is set of tapes or files where are backup stored (in short storage place).
+For backup.innovatrics.local was set rule one backup client has one pool (but
+use pool for all of backup jobs from one client).
+To create new pool, modify bacula director configuration file(_/etc/bacula/bacula-dir.conf_)
+on backup server backup.innovatrics.local by adding your pool configuration.
+Here is an example
+
+.Example
+------------------------------------------------------------------------------------------------
+Pool {
+  Name = PoolName                     # unique name of pool
+  Pool Type = Backup		      # default type
+  Recycle = yes                       # Bacula can automatically recycle Volumes, default
+  AutoPrune = yes                     # Prune expired volumes, default
+  Volume Retention = 1 month	      # How long are data stored in volume, default
+  Maximum Volume Bytes = 50G          # Limit Volume size to something reasonable, default
+  Maximum Volumes = 9               # Limit number of volumes to don't full whole filesystem
+}
+------------------------------
+
+After creating pool you must add some media into it(to make space for backed up files)
+When you issued reload in bconsole interface, type command _add media_ in bconsole. Now follow wizard
+instructions choose your pool, put number of volumes to create, put base volume name in format
+*PoolName-*. Whan you finish, you have created volumes with name _PoolName-n_ where n are numbers 
+ussualy from 1 to number of your volumes.
+[NOTE]
+Keep in mind that storage for backup volumes ins't infinite so create only number of volumes you need.
+[NOTE]
+To remove volume use command _del volume_ in bconsole interface.
+
+Creating deleting or modifing volumes can be done also trought bweb interface.
+In section media select add to add new media to pool. If you need to modify or delete media
+select _All Media_ section select your media a click edit.
+With search bar on right side you can filter displayed media.
+
+==== Creating Jobs
+When you have configured or selected from preconfigured pool, schedule, client and fileset, it is time
+to glue it together by defining a job.
+
+To create new job, modify bacula director configuration file(_/etc/bacula/bacula-dir.conf_)
+on backup server backup.innovatrics.local by adding your job configuration.
+.Example
+------------------------------------------------------------------------------------------------
+Job {
+  Name = "XenServer"	# put here unique job name
+  JobDefs = "DefaultJob"
+  Client = xenserver.innovatrics.local-fd # put here client name to perform backup on
+  FileSet = "FullServerFileset" # put here name of fileset 
+  Schedule = "ServerMonthlyCycle" # put here name of shedule for backup
+  Pool = "XenServerPool"          # put here name of pool to store 
+  Level = Full			  # this shedule overwrites with level setting
+  Priority = 10                   # run after main backup
+}
+----------------------------------
+
+=== Running job manualy
+Sometimes it is necessary to run job manualy. This can be done through bconsole
+by issuing command _run_ and selecting job from list.
+More confortable is to use bweb interface. To rerun failed or finished jobs
+click on status of backup job on main screen. After this job status detail 
+page appears on screen, here select icon _Run this job_. If you want to
+choose your job from all defined jobs go to section jobs, subsection Defined
+jobs. Here choose your backup job and click to icon _Run now_.
+
+=== Monitoring of backup jobs status
+It is handy to know status of latest backup jobs. This can be done by issuing
+command _status_ in bconsole interface . Then choose one of following options:
+
+1. Director - list of running, sheduled and finished jobs
+2. Storage - only storage properties of finished jobs
+3. Client - finished jobs by client
+4. All - all informations
+
+You can use also bweb interface to get these informations in more readable way. On main
+screen is summary of jobs in last 7 days. If you need more complex view use Jobs tab.
+Here you can find currently running jobs, finished jobs as well as sheduled jobs.
+
+=== Monitoring of backup storage pools
+To see status of pools and media issue command _list media_ in bconsole.
+To get more readable output use bweb interface. To look at pool statistics use Media tab
+section Pools. To view detailed volume listing use same tab section All media.
+
+=== Restoring backup files
+Restoring files, backups or whole hosts is possible only using command _restore_ in bconsole 
+interface. After issuing this command follow text wizard to choose files, jobs or directories to
+restore. After you choose what you want to restore, bconsole will ask you if you wan modify
+restore parameters. Here you can change where restred files will be placed and many other parameters
+(on which client to restore files, direcotory to restore etc.)  
+

@@ -1,0 +1,128 @@
+03-2011 report
+==============
+Marian Schmotzer <marian.schmotzer@chillisys.com>
+v1.0, Máj 2011:
+Report pre Máj.
+
+
+== Incidenty
+
+=== Automaticky reportované incidenty 
+
+Nasledovné problémy boli reportované automatickým systémom:
+
+*Datum:* Wed Apr 6 14:29:31 CEST 2011 +
+*Host:* server +
+*Service:* Total Procs +
+*Info:* PROCS WARNING: 501 processes +
+*Riešenie:* Maximálny počet procesov v monitoringu upravený +
+
+
+*Datum:* Mon Apr 4 12:05:17 CEST 2011 +
+*Host:* laco +
+*Service:* Dansguardian +
+*Info:* CHECK_NRPE: Socket timeout after 10 seconds. +
+*Riešenie:* Sieťová karta vymenená za novú +
+
+
+*Datum:* Thu Mar 17 13:50:27 CET 2011 +
+*Host:* laco +
+*Service:* squid proxy +
+*Info:* Connection refused +
+*Riešenie:* Plánovaná odstávka serveru +
+
+
+=== Incidenty reportované zákazníkom alebo Chilli systems
+
+Celý postup riešenia je uvedený v systéme na nahlasovanie chýb na adrese
+redmine.chillisys.com
+
+*ID:* 32 +
+*Datum:* 14/12/2010 +
+*Host:* server +
+*Info:* Zákazník reportoval problém s nastavením siete na servery 
+        po reštarte. Wan interface nenabehne korektne. +
+*Riešenie:* Problém vyriešený, bol spôsobený zlými nastaveniami v biose. +
+
+*ID:* 54 +
+*Datum:* 1/4/2010 +
+*Host:* server +
+*Info:* Reporter:Chilli; Jeden z diskov vypadáva z raidu v nepravidelných 
+	intervaloch. +
+*Riešenie:* Problém monitorovaný, firmware kontroleru bol aktualizovaný a v súčasnosti
+	    sa raid monitoruje - žiaden výpadok už 15 dní. +
+
+
+== Zmeny reportované zákazníkom alebo Chilli systems
+
+Táto sekcia obsahuje zmeny v konfigurácii, nové inštalácie a vylepšenia.
+Celý postup riešenia je uvedený v systéme na oznamovanie chýb na adrese
+redmine.chillisys.com.
+
+
+*ID:* 100 +
+*Datum:* 1/5/2010 +
+*Host:* all +
+*Info:* Inštalácia monitorovania na všetky servery. Na každom servery
+	budú monitorované všetky služby(apache,java atd.), všetky disky, 
+	využitie cpu,pamäte. +
+
+
+*ID:* 101 +
+*Datum:* 5/5/2010 +
+*Host:* all +
+*Info:* Inštalácia chillisystools na všetky servery. +
+
+
+*ID:* 102 +
+*Datum:* 1/5/2010 +
+*Host:* all +
+*Info:* Vytvorenie dokumentácie ku každému serveru. +
+
+
+*ID:* 103 +
+*Datum:* 10/5/2010 +
+*Host:* dns +
+*Info:* Vytvorenie repozitára na sťahovanie všetkých akualizacií z
+	Oracle Unbreakable Linux Network. +
+
+
+*ID:* 104 +
+*Datum:* 11/5/2010 +
+*Host:* all +
+*Info:* Kontrola všetkých serverov a zariadení, zistenie verzií firmware a
+	software. Aplikovanie potrebných updatov.+
+
+*ID:* 105 +
+*Datum:* 11/5/2010 +
+*Host:* ws01, ws02 +
+*Info:* Apache výkonová analýza a ladenie. +
+
+
+*ID:* 106 +
+*Datum:* 11/5/2010 +
+*Host:* haf01, haf02 +
+*Info:* Inštalácia caching proxy, na odľahčenie appXX a wsXX serverov. +
+
+
+== Grafy 
+
+V tejto sekcii sú uložené grafy ukazujúce výkonové štatistiky pre všetky
+server.
+
+*Meno Serveru:* Server
+
+.Cpu 
+image::graf_cpu.png["Cpu", height="30%",width="30%"]
+
+.Cpu s trendom
+image::graf_cpu_new.png["Cpu s trendom", height="30%",width="30%"]
+
+.Pamäť ram
+image::graf_mem.png["Ram", height="30%",width="30%"]
+
+.Využitie súborových systémov
+image::graf_fs.png["Fs", height="30%",width="30%"]
+
+.Využitie sieťových adaptérov
+image::graf_net.png["NetAPP", height="30%",width="30%"]

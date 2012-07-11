@@ -1,0 +1,177 @@
+Encrypt partition setup for MSTpartners
+=======================================
+Adam Hamsik <adam.hamsik@chillisys.com>
+v0.1, April 2011: Initial version based on my notes taken during mstpartners 
+server installation.
+
+
+== Device Creation ==
+
+First we need to format our device and put LUKS header on it. With one master
+password.
+
+.Format device to Luks and put crypto header on it
+-------
+mstpartners ~ # cryptsetup -y -s 256 luksFormat /dev/vg00/srv2 
+
+WARNING!
+========
+This will overwrite data on /dev/vg00/srv2 irrevocably.
+
+Are you sure? (Type uppercase yes): YES
+Enter LUKS passphrase: 
+Verify passphrase: 
+-------
+
+########
+## Temporary passphrase is imation
+########
+
+Before we can use device we need to open it with luksOpen and create symlink 
+in /dev/mapper/[name]
+
+.Opening device for usage 
+-------
+mstpartners ~ # cryptsetup luksOpen /dev/vg00/srv2 srv2
+Enter passphrase for /dev/vg00/srv2:
+
+mstpartners ~ # cryptsetup status srv2
+/dev/mapper/srv2 is active.
+  type:  LUKS1
+  cipher:  aes-cbc-essiv:sha256
+  keysize: 256 bits
+  device:  /dev/mapper/vg00-srv2
+  offset:  4096 sectors
+  size:    41938944 sectors
+  mode:    read/write
+-------
+
+Before we can remove device from system we need to close it first.
+
+.Closing device
+-------
+mstpartners ~ # cryptsetup luksClose srv2
+mstpartners ~ # cryptsetup status srv2
+/dev/mapper/srv2 is inactive.
+-------
+
+We can have more > 1 paswords guarding one master password.
+
+.Adding/Deleting new key to/from device 
+-------
+mstpartners ~ # cryptsetup -y luksAddKey /dev/vg00/srv2 
+Enter any passphrase: 
+Verify passphrase: 
+Enter new passphrase for key slot: 
+Verify passphrase:
+
+mstpartners ~ # cryptsetup -y luksKillSlot /dev/vg00/srv2 2
+Enter any remaining LUKS passphrase: 
+Verify passphrase:
+-------
+
+########
+## Second Temporary passphrase is test
+########
+
+
+=== Enable mounting/starting crypto partition with usb key ===
+
+To enable starting crypto partition with top secret USB key we first need to
+put key file on this stick. Detect USB key device name and put 256b key file
+there.
+
+.Adding keyfile to usbstick so we can use it to mount partition
+-------
+mstpartners ~ # dmesg | grep sdc
+[268887.916256] sd 6:0:0:0: [sdc] 506880 512-byte logical blocks: (259 MB/247 MiB)
+[268887.917130] sd 6:0:0:0: [sdc] Write Protect is off
+[268887.917136] sd 6:0:0:0: [sdc] Mode Sense: 43 00 00 00
+[268887.917140] sd 6:0:0:0: [sdc] Assuming drive cache: write through
+[268887.919997] sd 6:0:0:0: [sdc] Assuming drive cache: write through
+[268887.983649]  sdc: sdc1
+[268887.985504] sd 6:0:0:0: [sdc] Assuming drive cache: write through
+[268887.985507] sd 6:0:0:0: [sdc] Attached SCSI removable disk
+
+mstpartners ~ # ls -al /dev/disk/by-uuid/c8402f55-b590-440c-bc08-bd16ac09dd6c 
+lrwxrwxrwx 1 root root 10 Apr  5 01:38 /dev/disk/by-uuid/c8402f55-b590-440c-bc08-bd16ac09dd6c -> ../../sdc1
+
+mstpartners ~ # dd if=/dev/urandom of=/mnt/secretkey bs=256 count=1
+mstpartners ~ # cryptsetup luksAddKey /dev/vg00/srv2 /mnt/secretkey 
+Enter any passphrase:
+
+-------
+
+As second task we need to have persistent device names for USB key and 
+possibility to run special crafted script which will start our crypto database
+from keyfile. To properly identify device we use it _iSerial_ serial number 
+from lsusb -v output. After detection of described device udev will create 
+/dev/usbkey? device symlink and run /opt/local/bin/crypt_usb_key.sh script.
+
+.Writing own udev rule to mount special usb stick
+-------
+mstpartners ~ # lsusb -v | grep -A 5 Vendor
+  idVendor           0x090c Feiya Technology Corp.
+  idProduct          0x1000 Flash Drive
+  bcdDevice           11.00
+  iManufacturer           1 USB 2.0
+  iProduct                2 Flash Disk
+  iSerial                 3 AA00000000004835
+
+mstpartners ~ # SERIAL=AA00000000004835
+mstpartners ~ # SYMLINK=usbkey
+
+mstpartners / # /etc/udev/rules.d/91-usbdecrypt-key.rules
+SUBSYSTEMS=="usb", KERNEL=="sd*", ATTRS{serial}=="AA00000000004835", SYMLINK+="usbkey%n", RUN+="/opt/local/bin/crypt_usb_key.sh -U"
+-------
+
+=== Configuring _crypt_usb_ script to mount usb part ===
+
+Crypt_usb script needs some generic configuration to be able to mount usb key 
+with secret file and decrypt partition with it. Then it will mount created 
+device to selected mount point and start all apps running from it.
+
+.Example configuration file for crypt_usb script.
+-------
+mstpartners / # cat /opt/local/conf/crypt_usb.conf
+#### USB Section ####
+
+# Static name of password USB key
+USB_KEY_DEV=/dev/usbkey1
+###
+
+# Name of file with password to decrypt fs
+USB_CRYPT_KEYNAME=secretkey
+###
+
+#### General Section ####
+
+# Init scripts dir
+STARTUP_INIT_DIR=/etc/init.d
+###
+
+# Log file for later inspection
+LOG_FILE=/tmp/crypt_part.log
+###
+
+#### Crypt partition Section ####
+
+# Path to device with encrypted data
+PARTITION_DEV_PATH=/dev/vg00/srv2
+###
+
+# Created device name in /dev/mapper
+PARTITION_DEV_NAME=srv2
+###
+
+# Where to mount partition after decrypting
+PARTITION_MOUNT=/srv
+###
+-------
+
+== Installation of code ==
+
+To get this script chillisystools needs to be installed on a server and 
+src/cryptpart needs to be used for it.
+
+[1] https://wiki.archlinux.org/index.php/System_Encryption_with_LUKS_for_dm-crypt

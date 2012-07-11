@@ -1,0 +1,215 @@
+Documentation related to Server monitoring
+==========================================
+Marian Schmotzer <marian.schmotzer@chillisys.com>
+v1.0, December 2010:
+Initial proposal version.
+
+== Monitoring Overview
+
+Every server administated by Chilli Systems must be monitored by nagios monitoring system.
+On servers must be monitored :
+
+* Usage of disks
+
+* Usage of memory
+
+* Usage of load
+
+* Number of proceses and users
+
+* Services running on server used by customer
+
+Any problem will be reported by email to support address support@chillisys.com
+On every server is instaled nagios-nrpe program to provide active monitoring.
+On customer gateway or another selected server is instaled nagios to 
+run monitoring tasks on other servers. Problem is reported by dedicated 
+postfix smtp deamon to listed email address.
+<<<<<<< HEAD
+If there is only one server in customer enviroment(or servers are not connected by internal lan) , 
+all listed components are installed and configured on each server.
+=======
+If there is only one server in customer enviroment(or servers are not connected by internal lan), 
+all listed components are installed and configured on one server.
+>>>>>>> e93a228aa546b6e4c0879a010f17eccd7ef595db
+
+.Notice
+Path to nrpe plugins can differ between examples and your system.
+
+=== Monitoring disks 
+
+Occupied space on disks are monitored using these rules :
+
+* Warning message comes if disk is over 80% of capacity
+
+* Critical message comes if disk is over 90% of capacity
+
+If there is special exeception, it must be written to nrpe config as well as
+to server Chilli System documentation.
+
+.Example Nrpe standard disk config
+--------------------------------------
+command[check_root]=/usr/lib64/nagios/plugins/check_disk -w 20% -c 10% -p /dev/md2
+command[check_var]=/usr/lib64/nagios/plugins/check_disk -w 20% -c 10% -p /dev/vg01/var
+command[check_usr]=/usr/lib64/nagios/plugins/check_disk -w 20% -c 10% -p /dev/vg01/usr
+command[check_tmp]=/usr/lib64/nagios/plugins/check_disk -w 20% -c 10% -p /dev/vg01/tmp
+--------------------------------------
+
+.Example Nagios config for / disk
+--------------------------------------
+define service{
+        use                     generic-service
+        host_name               myhost
+        service_description     Disk statistics /
+        check_command           check_nrpe!check_root
+        }
+--------------------------------------
+
+
+
+=== Monitoring memory
+
+It isn't  problem when server memory  utilization is close to 100%, because
+system is using memory also for cache and buffers. Real problems come
+when swap is almost full, this can cause server or aplication crash.
+
+Beacuse of this we are monitoring only swap usage:
+
+* warning message when swap is over 70%(less then 30% free)
+
+* critical message when swap is over 90%(less then 10% free)
+
+.Example Nrpe standard swap config
+--------------------------------------
+command[check_swap]=/usr/lib64/nagios/plugins/check_swap -w 30 -c 10
+--------------------------------------
+
+.Example Nagios standard swap config
+--------------------------------------
+define service{
+        use                     generic-service
+        host_name               myhost
+        service_description     Swap
+        check_command           check_nrpe!check_swap
+        }
+--------------------------------------
+
+=== Monitoring Load
+
+Server load messages:
+
+* Warning message when load is above 15 
+
+* Critical message when load is above 30
+
+These values depends on server and can be changed to fit 
+customers needs. Every non standard value must described in nrpe config as well as
+in server Chilli System documentation.
+
+.Example Nrpe standard load config
+--------------------------------------
+command[check_swap]=/usr/lib64/nagios/plugins/check_swap -w 30 -c 10
+--------------------------------------
+
+.Example Nagios standard load config
+--------------------------------------
+define service{
+        use                     generic-service
+        host_name               myserver
+        service_description     Server load
+        check_command           check_nrpe!check_load
+        }
+--------------------------------------
+
+=== Monitoring number of processes and users
+
+In process monitoring are monitored two variables:
+
+* number of all proceses
+
+* number of zombie proceses
+
+Number of all processes differs from system to system.
+Number of zombie proceses is handled :
+
+* Warning message if is above 5
+
+* Critical message if is above 10
+
+.Example Nrpe standard load config
+--------------------------------------
+command[check_zombie_procs]=/usr/lib64/nagios/plugins/check_procs -w 5 -c 10 -s Z
+command[check_total_procs]=/usr/lib64/nagios/plugins/check_procs -w 350 -c 400 
+--------------------------------------
+
+Number of logged users can differ on various systems. Good practice is :
+
+* Warning message if is above 5
+
+* Critical message if is above 10
+
+for systems with ssh access only to administrators.
+
+
+=== Service monitoring
+
+Every servcice is montored by differet way. In next lines are listed 
+almost all services with example of monitoring settings.
+
+.example squid proxy on localhost port 3128
+--------------------------------------
+command[check_squid]=/usr/lib64/nagios/plugins/check_http -I 127.0.0.1 -p 3128 -u "http://habanero.chillisys.com" -c 10 -w 5
+--------------------------------------
+
+.example dansguardian on ip 10.1.14.1 port 3000
+--------------------------------------
+command[check_dansguardian]=/usr/lib64/nagios/plugins/check_http -I 10.1.14.1 -p 3000 -u "http://habanero.chillisys.com" -p 3000 -c 10 -w 5
+--------------------------------------
+
+.example dns listning on ip 10.1.14.2, hostname to resolve test is suser.uc.gln.sk 
+--------------------------------------
+command[check_dns]=/usr/lib64/nagios/plugins/check_dns -H suser.uc.gln.sk -s 10.1.14.2 -c 10 -w 5
+--------------------------------------
+
+.example samba, share public
+--------------------------------------
+command[check_samba]=/usr/lib64/nagios/plugins/check_disk_smb 192.168.1.1 public
+--------------------------------------
+
+.example svnserve on port 3690, ip 192.168.1.1
+--------------------------------------
+command[check_svn]=/usr/lib64/nagios/plugins/check_tcp -H 192.168.1.1 -p 3690 
+--------------------------------------
+
+.example openvpn port 1194(tcp)
+--------------------------------------
+command[check_openvpn]=/usr/lib64/nagios/plugins/check_tcp -H 85.216.182.210 -p 1194
+--------------------------------------
+
+.notice Is monitored service is web server all aplications/namehosts must be monitored
+
+.example ssl webserver namehost 
+--------------------------------------
+command[check_www_redmine]=/usr/lib64/nagios/plugins/check_http -u https://redmine.innovatrics.com -H localhost -p 443 --ssl
+--------------------------------------
+
+.example webserver namehost
+--------------------------------------
+command[check_www_redmine]=/usr/lib64/nagios/plugins/check_http -u http://redmine.innovatrics.com -H localhost
+--------------------------------------
+
+.example webserver aplication
+--------------------------------------
+command[check_redmine]=/usr/lib64/nagios/plugins/check_http -u https://redmine.innovatrics.com -H localhost
+--------------------------------------
+
+
+.example bacula backup solution
+--------------------------------------
+command[check_bacula_dir]=/usr/lib64/nagios/plugins/check_tcp -H localhost -p 9101 -c 10 -w 5
+command[check_bacula_sd]=/usr/lib64/nagios/plugins/check_tcp -H localhost -p 9103 -c 10 -w 5
+command[check_bacula_fd]=/usr/lib64/nagios/plugins/check_tcp -H localhost -p 9102 -c 10 -w 5
+--------------------------------------
+
+
+
+

@@ -1,0 +1,149 @@
+Gentoo IPMI setup
+=================
+Marian Schmotzer <marian.schmotzer@chillisys.com>
+v1.0, Jun 2011:
+Initial proposal version.
+
+== Ipmi basic setup
+
+Howto setup ipmi on your server.
+
+=== Kernel modules and tools 
+
+First you need to compile IPMI modules.
+In kernel curses interface go to 
+Device Drivers -> Character Devices -> 
+IPMI top level message handler - Select module, and in this IPMI section
+select all available options to compile as modules.
+Make and install modules.
+Load this modules into kernel:
+
+* ipmi_msghandler
+* ipmi_devintf
+* ipmi_si
+* ipmi_poweroff
+
+To load modules at boot, add following line to file _/etc/conf.d/modules_ (or upgrade line if it is presented) -
+
+-------
+modules_2_6="ipmi_msghandler ipmi_devintf ipmi_si ipmi_poweroff"
+-------
+
+To configure and work with ipmi you need install folowing tools
+-------
+emerge -av sys-apps/ipmitool
+-------
+
+=== Configure remote access
+
+First check current lan settings with command
+-------
+ipmitool lan print
+-------
+Now set network paramaters 
+-------
+ipmitool lan set 1 ipaddr IP.IP.IP.IP
+ipmitool lan set 1 netmask MASK.MASK.MASK.MASK
+ipmitool lan set 1 defgw ipaddr IP.IP.IP.IP
+-------
+To improve security disable all users except admin.
+First list available users
+
+-------
+ipmitool user list 1
+-------
+Now disable users by command 
+
+-------
+ipmitool user list 1 disable USERID
+-------
+
+Also set password for admin user
+
+------
+ipmitool user set password USERID PASSWORD
+------
+
+Now you can test remote access by command 
+
+------
+ipmitool -I lanplus -U USERNAME -P PASSWORD -H HOST  chassis status
+------
+
+If you get something like :
+------
+System Power         : on
+Power Overload       : false
+Power Interlock      : inactive
+Main Power Fault     : false
+Power Control Fault  : false
+Power Restore Policy : always-on
+Last Power Event     : 
+Chassis Intrusion    : inactive
+Front-Panel Lockout  : inactive
+Drive Fault          : false
+Cooling/Fan Fault    : false
+Sleep Button Disable : allowed
+Diag Button Disable  : allowed
+Reset Button Disable : allowed
+Power Button Disable : allowed
+Sleep Button Disabled: false
+Diag Button Disabled : false
+Reset Button Disabled: false
+Power Button Disabled: false
+------
+Your remote connection is working
+
+==== Configure remote serial console
+
+First you must find which serial console is ipmi console.
+Start remote console by command:
+------
+ipmitool -I lanplus -U USERNAME -P PASSWORD -H HOST  sol activate 
+------
+Now try to write some character to each serial console. For first console
+issue command:
+------
+echo "1" > /dev/ttyS0
+------
+If your character is displayed on remote console you found serial port redirected 
+to IPMI remote console.
+
+Now allow login using serial console , add line bellow to your _/etc/inittab_
+
+------
+s1:12345:respawn:/sbin/agetty 19200 ttyS0 vt100
+------
+
+[NOTE]
+In example was used serial port ttyS0, you must use one, you found on your system.
+
+You also need to update grub config to see grub boot screen and update kernel parameters.
+Add folowing lines to _/boot/grub/grub.conf_ :
+------
+serial --unit=1 --speed=19200 --word=8 --parity=no --stop=1
+terminal --timeout=30 serial console
+------
+So your grub configuration looks like
+
+.Example
+------
+default 0
+timeout 10
+#splashimage=(hd0,0)/boot/grub/splash.xpm.gz
+serial --unit=1 --speed=19200 --word=8 --parity=no --stop=1
+terminal --timeout=30 serial console
+------
+
+[NOTE]
+splashimage must be commented out.
+
+To redirect kernel output to serial console add following parameters 
+to your kernel _console=ttyS1,19200n8_
+So your linux configuration in grub looks like:
+
+-------
+title Gentoo Linux
+root (hd0,1)
+kernel /boot/vmlinuz root=/dev/sda3 console=ttyS1,19200n8
+-------

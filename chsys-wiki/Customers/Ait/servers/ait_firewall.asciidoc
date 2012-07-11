@@ -1,0 +1,171 @@
+server.ait.local server documentation
+=====================================
+Adam Hamsik <adam.hamsik@chillisys.com>
+v1.0 Jun 2011:
+
+== General information
+[halign="center"]
+|==============================================
+|**Procesor** 	    : | 2 cores of Intel(R) Atom(TM) CPU D525   @ 1.80GHz
+|**Main memory**    : |	4062680 kB	
+|**Virtualization** : | 
+|**Hostname**       : | server.ait.local
+|**OS**             : | Gentoo linux
+|**Device type	    : | Server 		
+|**State**	    : | Moved to production Wed Jun 15 17:13:58 CEST 2011
+|**SLA**	    : | 24x7 monitoring
+|resolve	    : | 24 
+|==============================================
+
+**Relations**: 
+
+== Storage preferences
+
+=== Software RAID description
+[halign="center"]
+|=============================================
+|RAID device|RAID type|RAID backend devices
+|**md1**   | raid1 | sdb1[1] sda1[0]
+|**md2**   | raid1 | sdb2[1] sda2[0]
+|**md3**   | raid1 | sdb3[1] sda3[0]
+|=============================================
+
+=== Logical Volume Manager description
+
+==== LVM PV Description
+[halign="center"]
+|=============================================
+|PV Name|PV UUID|Device Size| VG Name
+|/dev/md3|tf5uMI-KOeb-b1zi-Veb9-110q-ZN7w-25LCej|1.82t|vg00
+|=============================================
+
+==== LVM VG Description
+[halign="center"]
+|=============================================
+|VG Name|VG UUID|VG Size|PV Count|LV Count
+|vg00|rFkSsK-ku11-0BlD-2UQ5-okWo-60Ek-5si4kU|1.82t|1|5
+|=============================================
+
+==== LVM LV Description
+[halign="center"]
+|=============================================
+|VG Name|LV Name|LV uuid|LV size|PV name
+| vg00 | usr | xl5rAi-vWYt-vuCC-jCbh-mG2D-gWEX-SepV6k| 6.00g | /dev/md3
+| vg00 | var | pmcs88-Xssu-wjZo-7NTV-V1ln-HMxv-1LH0UY| 3.00g | /dev/md3
+| vg00 | swap | 7bBcY9-WBQd-KgV4-DZyq-6ZT3-tBqE-BuDtln| 4.00g | /dev/md3
+| vg00 | tmp | OA5d58-c2Z8-dWvG-cvCK-8L1o-c1c5-hDflzh| 1.00g | /dev/md3
+| vg00 | srv | Om9rKJ-Pf1m-ABHj-pM61-aEAO-I0rE-OAIIlg| 1.70t | /dev/md3
+|=============================================
+
+=== File-systems, Mountpoints description
+[halign="center"]
+|=============================================
+|Device|Mount point|File system type| File system size
+| /dev/md1    | /boot | ext4 | 2.0G
+| /dev/md2    | / | ext4 | 2.0G
+| /dev/vg00/swap    2+| partition | 4194300
+| /dev/vg00/usr    | /usr | ext4 | 6.0G
+| /dev/vg00/var    | /var | ext4 | 3.0G
+| /dev/vg00/tmp    | /tmp | ext4 | 1008M
+| /dev/vg00/srv    | /srv | ext4 | 1.7T
+|=============================================
+
+=== Network description
+
+==== Network Interfaces description
+===== eth0
+[halign="center"]
+|=============================================
+|**eth0**      | 
+|IP            | 192.168.0.167
+|Netmask       | 255.255.255.0
+|MAC           | bc:ae:c5:b5:1f:e3
+|**DNS**       | server.ait.local
+|**Special**   |
+|=============================================
+
+===== eth1
+[halign="center"]
+|=============================================
+|**eth1**      | 
+|IP            | 172.16.10.1
+|Netmask       | 255.255.255.0
+|MAC           | 00:1f:1f:fa:2c:56
+|**DNS**       | server.ait.local
+|**Special**   |
+|=============================================
+
+===== tap0
+[halign="center"]
+|=============================================
+|**tap0**      | 
+|IP            | 172.16.11.1
+|Netmask       | 255.255.255.0
+|MAC           | ca:60:bf:1d:c8:81
+|**DNS**       | server.ait.local
+|**Special**   |
+|=============================================
+
+==== Network Firewall rules description
+
+------
+Chain INPUT (policy DROP)
+target     prot opt source               destination         
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0           
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0           tcp dpt:1194 
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0           
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0           
+ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0           tcp dpt:22 
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0           state RELATED,ESTABLISHED 
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0           
+
+Chain FORWARD (policy DROP)
+target     prot opt source               destination         
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0           
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0           
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0           
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0           
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0           state RELATED,ESTABLISHED 
+ACCEPT     all  --  0.0.0.0/0            0.0.0.0/0           
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain PREROUTING (policy ACCEPT)
+target     prot opt source               destination         
+DNAT       tcp  --  0.0.0.0/0            0.0.0.0/0           tcp dpt:80 to:172.16.10.1:3128 
+
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain POSTROUTING (policy ACCEPT)
+target     prot opt source               destination         
+MASQUERADE  all  --  0.0.0.0/0            0.0.0.0/0           
+------
+
+==== Network Routes description
+
+------
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface
+172.16.10.0     0.0.0.0         255.255.255.0   U         0 0          0 eth1
+172.16.11.0     0.0.0.0         255.255.255.0   U         0 0          0 tap0
+192.168.0.0     0.0.0.0         255.255.255.0   U         0 0          0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U         0 0          0 lo
+0.0.0.0         192.168.0.1     0.0.0.0         UG        0 0          0 eth0
+------
+
+== Services 
+
+=== Daemons
+
+=== WebApps
+
+== Special
+
+=== Connecting
+
+== Contacts

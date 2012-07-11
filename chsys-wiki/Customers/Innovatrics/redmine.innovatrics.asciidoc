@@ -1,0 +1,114 @@
+Innovatrics Redmine Project server documentation
+================================================
+Adam Hamsik <adam.hamsik@chillisys.com>
+v1.0, August 2010:
+Initial proposal version.
+
+== Redmine Description
+
+Redmine is a project management software, written in Ruby on Rails application framework. It consist of these parts
+
+.Redmine Server Features
+* Project management 
+	- Project wikis
+	- Project time tracking
+	- Project issue management
+	- Project repository browser
+	- Project documentation storage
+* User Management
+	- Integration with ldap for user rights management
+	- Mysql, Postgresql, Oracle database support
+
+=== Innovatrics Redmine Setup
+
+Installed version of Redmine is _0.97_ which was last stable release of redmine in time of installation. Current latest
+release is _1.0.1_. Redmine is part of Gentoo portage tree and therefore it was installed by command ''emerge redmine'' 
+which installed redmine application to _/var/lib/redmine_. Application installed init startup script to  _/etc/init.d/redmine_ which can be used to start, stop and restart redmine server.
+
+=== Redmine Server Setup
+
+Redmine server uses mysql database accessible through file system socket at _/var/run/mysql/mysql.sock_. It uses database redmine for production setup and username _redmine_ with password _redminechillimysqlPASS_. 
+
+Application itself runs it own web server accessible from localhost on port 3000. 
+
+=== Apache Server Setup
+
+Apache server mod_proxy module was configured in a way that he redirects all connections made to https://redmine.innovatrics.com to localhost port 3000. 
+
+.Apache configuration file part
+-----
+<IfDefine SSL>
+<IfDefine SSL_DEFAULT_VHOST>
+<IfModule ssl_module>
+
+Listen 0.0.0.0:443
+
+<VirtualHost _default_:443>
+	ServerName redmine.innovatrics.com
+	DocumentRoot "/var/www/localhost/htdocs"
+	RewriteEngine On
+	RewriteLogLevel 0
+	RewriteRule ^/$ https://redmine.innovatrics.com/login [R]
+	# passing requests to redmine
+	RequestHeader set X_FORWARDED_PROTO 'https'
+	ProxyRequests off
+	ProxyPass / http://localhost:3000/
+	ProxyPassReverse / http://localhost:3000/
+	ErrorLog /var/log/apache2/ssl_error_log
+
+	<IfModule log_config_module>
+		TransferLog /var/log/apache2/ssl_access_log
+	</IfModule>
+
+	SSLEngine on
+
+	SSLCipherSuite ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP:+eNULL
+	SSLCertificateFile /etc/certs/server.crt
+	SSLCertificateKeyFile /etc/certs/server.key
+
+	<FilesMatch "\.(cgi|shtml|phtml|php)$">
+		SSLOptions +StdEnvVars
+	</FilesMatch>
+
+	<Directory "/var/www/localhost/cgi-bin">
+		SSLOptions +StdEnvVars
+	</Directory>
+
+	<IfModule setenvif_module>
+		BrowserMatch ".*MSIE.*" \
+			nokeepalive ssl-unclean-shutdown \
+			downgrade-1.0 force-response-1.0
+	</IfModule>
+
+	<IfModule log_config_module>
+		CustomLog /var/log/apache2/ssl_request_log \
+			"%t %h %{SSL_PROTOCOL}x %{SSL_CIPHER}x \"%r\" %b"
+	</IfModule>
+</VirtualHost>
+</IfModule>
+</IfDefine>
+</IfDefine>
+
+-----
+
+=== Redmine, Git repository integration
+
+To be able to read git repository redmine, needs to have access to not bare one. Therefore I have created directory _/srv/repos/redmine_. Every project which needs it's own repository should use gitosis server for managing and it 
+should change post_update git hook to push changes from main repository to redmine one. 
+
+.Gitosis to redmine post_update hook
+----
+echo "Update server local copy..."
+
+WORKDIR="/srv/repos/redmine/{repo name}"
+export GIT_DIR=$WORKDIR/.git
+
+pushd $WORKDIR > /dev/null
+git reset --hard
+git pull
+popd < /dev/null
+
+/usr/bin/git update-server-info
+
+unset GIT_DIR
+----

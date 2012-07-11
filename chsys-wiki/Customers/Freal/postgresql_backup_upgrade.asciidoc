@@ -1,0 +1,98 @@
+Postgresql Upgrade/Install HOWTO
+======================
+Adam Hamsik <adam.hamsik@chillisys.com>
+v0.1, April 2012: Initial version written by haad@.
+
+=== Creating of DB Backup ===
+
+Backup needs to be taken with this command
+
+----
+DB_NAME=eowin01
+pg_dump -Fc ${DB_NAME}
+----
+
+=== Restore DB backup ===
+
+==== Create postgis_template ====
+
+If postgis template doesn't exist create it accordingly to <<create_postgis_template>>.
+
+==== Create required users ====
+
+To have proper permissions on DB we need to create our users first. Execute this as postgrsql user.
+
+-----
+cat << EOF | psql -1 -d postgres
+CREATE ROLE eowin;
+ALTER ROLE eowin WITH SUPERUSER INHERIT CREATEROLE CREATEDB LOGIN PASSWORD 'md5e6e658e02b0e60f9aebcccb5fb0f839a' VALID UNTIL 'infinity';
+CREATE ROLE reader;
+ALTER ROLE reader WITH NOSUPERUSER INHERIT NOCREATEROLE NOCREATEDB LOGIN PASSWORD 'md5594a23d93fbef31193790edc87763969' VALID UNTIL 'infinity';
+EOF
+-----
+
+====  Create required dbs  ====
+
+eowin01 database needs to be created from template_postis, others are standard postgresql dbs.
+
+----
+cat << EOF | psql -1 -d postgres
+CREATE DATABASE ecm01 WITH TEMPLATE = template0 OWNER = eowin;
+REVOKE ALL ON DATABASE ecm01 FROM PUBLIC;
+REVOKE ALL ON DATABASE ecm01 FROM eowin;
+GRANT ALL ON DATABASE ecm01 TO eowin;
+GRANT ALL ON DATABASE ecm01 TO PUBLIC;
+CREATE DATABASE eowin01 WITH TEMPLATE = template_postgis OWNER = eowin;
+REVOKE ALL ON DATABASE eowin01 FROM PUBLIC;
+REVOKE ALL ON DATABASE eowin01 FROM eowin;
+GRANT ALL ON DATABASE eowin01 TO eowin;
+GRANT ALL ON DATABASE eowin01 TO PUBLIC;
+CREATE DATABASE eowin_forum01 WITH TEMPLATE = template0 OWNER = eowin;
+REVOKE ALL ON DATABASE eowin_forum01 FROM PUBLIC;
+REVOKE ALL ON DATABASE eowin_forum01 FROM eowin;
+GRANT ALL ON DATABASE eowin_forum01 TO eowin;
+GRANT ALL ON DATABASE eowin_forum01 TO PUBLIC;
+EOF
+----
+
+After creation it should look like this
+
+-----
+    List of databases
+Name               Owner
+ecm01              eowin
+eowin01           eowin
+eowin_forum01 eowin
+-----
+
+==== Restore DB data  ====
+
+----
+DB                      BACKUP_FILE
+eowin01_forum  eowin_forum01_20120425_0005.gz
+eowin01 	  eowin01_20120424_2359.gz
+ecom01	  ecm01_20120425_0005.gz
+
+gunzip -dc backup/eowin01_20120424_2359.gz | pg_restore -d eowin01 1> log/db_restore.log 2> log/db_restore_error.log
+gunzip -dc backup/eowin_forum01_20120425_0005.gz | pg_restore -d eowin_forum01 1> log/db_restore.log1 2> log/db_restore_error.log1
+gunzip -dc backup/ecm01_20120425_0005.gz | pg_restore -d ecm01 1> log/db_restore.log2 2> log/db_restore_error.log2
+----
+
+
+[[create_postgis_template]]
+=== Postgis_template creation ===
+
+To restore db backup on a fresh system administrator first need to create db template with postgis extensions there
+
+----
+createdb template_postgis
+createlang plpgsql template_postgis
+psql -d template_postgis -f /usr/pgsql-9.1/share/contrib/postgis-1.5/postgis.sql
+psql -d template_postgis -f /usr/pgsql-9.1/share/contrib/postgis-1.5/spatial_ref_sys.sql
+-----
+
+
+
+
+
+

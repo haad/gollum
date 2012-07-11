@@ -1,0 +1,58 @@
+Porting Openstack project proposal
+==================================
+Adam Hamsik <adam.hamsik@chillisys.com>
+v1.0, August 2010:
+Initial proposal version.
+
+== Overview of needed changes
+
+.Notice
+NOTE: This is draft only file used for internal testing.
+
+.Caution
+CAUTION: Caution.
+
+.Important
+IMPORTANT: Important.
+
+.Warning
+WARNING: Warning.
+
+As a first stage we need to become familiar with OpenStack and identify parts of it which will need to be ported to BSD platform. 
+On other side we want to see if Openstack is ready for production and can be used in our setup.  Therefore our first initial task 
+is to install latest version of OpenStack to Linux machine. Later after installation we can identify parts of system which will 
+need to be ported to BSD.
+
+1. Install and configure OpenStack on Linux machine. Duration 2-3 weeks
+2. Do initial testing to see if OpenStack can be used in production in it\'s current state. Duration 2-3 weeks.
+   After this stage we need to make a decision if we are going with OpenStack or we are going to roll out our own API.
+3. Identify parts of OpenStack which need to be ported Duration 1 week.
+4. Start actual port We can say how much work it will require now, just because we haven't tested OpenStack yet. But my rough idea 
+   is that it can take 16-18 weeks.
+
+.Dovecot image
+image::dovecot.png["Alt text",height="50%",width="50%",align="center"]
+image::{chilli_imgdir=.}/chillisys-logo.png["Alt text",height="50%",width="50%",align="center"]
+
+=== Price
+
+I think that 250$ for a week during stage 1 and 2 should be enough. I will be able to work on it for 16-20h per week.
+
+=== The First stage of changes
+
+
+Initial installation will be done on our server with Linux and XEN to test similar setup like we will use with NetBSD.Storage 
+server will be placed on different machine and will try to use iSCSI for disk sharing over ethernet network. Master servers will be 
+placed on separate machines to make our testing solution more similar to real setup.
+
+=== Definition of milestones
+
+
+Be able to use and test OpenStack based cloud on Linux.
+
+=== Time frame
+
+
+This stage will took me 2-3 weeks. Most of the time we will spent by installing and configuring OpenStack environment.
+
+'''

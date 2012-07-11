@@ -1,0 +1,29 @@
+Innovatrics Meeting
+===================
+Adam Hamsik <adam.hamsik@chillisys.com>
+v1.0, Jun 2011: Meeting day
+
+= Introduction =
+
+* _Datum_: 10.06.2011
+* _Attendees_: Jan Lunter, Adam Hamsik
+* _Missing_: Marian Schmotzer 
+
+== Unixmg == 
+
+1. pridat wifi support wpa+wpa2+wpe
+2. vyfakturovat povodnu sumu a ostatok bude ako update
+
+== FDK development board ==
+
+1. Ocheckovat a zistit ako funguje prilozene SDK
+2. Zistit ako ide ASM, optimalizacia etc..
+3. Ma na tom bezat algoritmus pre matchovanie odlackov prstov preto musime zisit ako to funguje
+
+== Instalacia V Gabone ==
+
+1. Tyzden setup veci, network, systemy, atd. 
+
+== Bounjour ==
+
+1. ? nieje iste ze to je treba

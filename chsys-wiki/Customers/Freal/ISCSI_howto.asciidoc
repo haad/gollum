@@ -1,0 +1,246 @@
+ISCSI installation and usage documentation
+==========================================
+Adam Hamsik <adam.hamsik@chillisys.com>
+v0.1, February 2011: Initial version based on my notes taken during iscsi Freal project.
+
+== ISCSI Documentation
+
+This document uses Centos linux 5.5 and Oracle Enterprise Linux 5.5 as examples.
+First part of this document is responsible for explaining how iscsi server and 
+client should be installed and configured in a Customer environment. 
+
+The second part explains how is iscsi disk used in this environment as 
+
+* backup solution
+* disaster recovery plan
+
+=== ISCSI Network Architecture
+
+Main purpose for ISCSI is providing shared storage for aps and WS nodes. 
+All nodes which are connected to ISCSI server must be in _107_ VLAN
+
+image:freal_shared_storage.png["ISCSI storage diagram", height="50%",width="50%"]
+
+IP addresses are assigned this way
+
+|====================
+|Hostname| IP address
+|iscsi|192.168.107.1
+|aps01|192.168.107.2
+|aps02|192.168.107.3
+|aps03|192.168.107.4
+|aps04|192.168.107.5
+|aps05|192.168.107.6
+|ws01|192.168.107.7
+|ws02|192.168.107.8
+|====================
+
+=== ISCSI Installation
+
+For installation we use _yum_ which require these settings in _/etc/yum.conf_ 
+to enable access to oracle-linux-5-5 repository located at 192.168.100.8.
+
+-------
+proxy=http://192.168.100.8:3128
+
+[oracle5u5]
+name=oracle5u5
+baseurl=ftp://192.168.100.8/pub/5u5/Server/
+gpgkey=ftp://192.168.100.8/pub/5u5/RPM-GPG-KEY
+gpgkey=ftp://192.168.100.8/pub/5u5/RPM-GPG-KEY-oracle
+-------
+
+==== Install ISCSI server
+
+ISCSI target server should be included in base installation if it's 
+not it needs to be installed. 
+
+-------
+yum install libibverbs librdmacm librdmacm-devel
+rpm -ivh /tmp/perl-Config-General-2.40-1.el5.noarch.rpm
+rpm -ivh /tmp/scsi-target-utils-0.0-6.20091205snap.el5_5.3.x86_64.rpm
+-------
+
+After iscsi target server installation configuration of exported disks is 
+needed. Configuration file is located /etc/tgt/targets.conf.
+
+-------
+<target iqn.2011-02.sk.reality:iscsi.media>
+    backing-store /dev/vg_iscsi/media
+    MaxRecvDataSegmentLength 10485576
+    MaxXmitDataSegmentLength 10485576
+    #HeaderDigest None
+    #DataDigest None
+    InitialR2T Yes
+    #MaxOutstandingR2T 1
+    ImmediateData Yes
+    FirstBurstLength 1462144
+    MaxBurstLength 10485576
+</target>
+
+<target iqn.2011-02.sk.reality:iscsi.temp>
+    backing-store /dev/vg_iscsi/temp
+    MaxRecvDataSegmentLength 10485576
+    MaxXmitDataSegmentLength 10485576
+    #HeaderDigest None
+    #DataDigest None
+    InitialR2T Yes
+    #MaxOutstandingR2T 1
+    ImmediateData Yes
+    FirstBurstLength 1462144
+    MaxBurstLength 10485576
+</target>
+-------
+After setting configuration we need to start _tgtd_ daemon.
+-------
+/etc/init.d/tgtd start
+chkconfig --add tgdt
+-------
+
+==== Install ISCSI client
+
+Client iscsi tools can be installed with command:
+-------
+yum install iscsi-initiator-utils
+-------
+
+After installation iscsi tools needs to be configured to have proper iqn name 
+and tuned for better disk performance.
+-------
+cat /etc/iscsi/initiatorname.iscsi
+InitiatorName=iqn.2011-02.sk.reality-ws02:2b6f8576ced
+
+cat /etc/iscsi/iscsid.conf
+node.startup = automatic
+
+node.session.timeo.replacement_timeout = 120
+node.session.err_timeo.abort_timeout = 15
+node.session.err_timeo.lu_reset_timeout = 20
+node.session.initial_login_retry_max = 8
+node.session.cmds_max = 128
+node.session.queue_depth = 32
+node.session.iscsi.InitialR2T = Yes
+node.session.iscsi.ImmediateData = Yes
+node.session.iscsi.FirstBurstLength =  1462144
+node.session.iscsi.MaxBurstLength = 10485576
+node.session.iscsi.FastAbort = No
+
+discovery.sendtargets.iscsi.MaxRecvDataSegmentLength = 10485576
+
+node.conn[0].iscsi.MaxRecvDataSegmentLength = 10485576
+node.conn[0].iscsi.HeaderDigest = CRC32C
+node.conn[0].iscsi.HeaderDigest = None
+node.conn[0].timeo.login_timeout = 15
+node.conn[0].timeo.logout_timeout = 15
+node.conn[0].timeo.noop_out_interval = 5
+node.conn[0].timeo.noop_out_timeout = 5
+-------
+
+Which will install iscsiadm tool for accessing iscsi devices from network.	
+-------
+chkconfig --add iscsi
+chkconfig --add iscsid
+-------
+
+=== ISCSI Usage
+
+==== ISCSI client
+Discovering disks and logining to iscsi server.
+
+-------
+iscsiadm --mode discovery --type sendtargets --portal 192.168.107.1
+iscsiadm --mode node --targetname iqn.2011-02.sk.reality:iscsi.temp --portal 192.168.107.1 --login
+iscsiadm --mode node --targetname iqn.2011-02.sk.reality:iscsi.media --portal 192.168.107.1 --login
+mkdir /mnt/iscsi_media/
+mount -L iscsi_media /mnt/iscsi_media/
+-------
+
+==== ISCSI server
+Online iscsi device manipulation from iscsi server.
+
+-------
+tgtadm --lld iscsi --mode target --op update --tid 1 --name MaxRecvDataSegmentLength --value 131072
+tgtadm --lld iscsi --mode target --op update --tid 1 --name MaxXmitDataSegmentLength --value 131072
+tgtadm --lld iscsi --mode target --op update --tid 1 --name FirstBurstLength --value 131072
+tgtadm --lld iscsi --mode target --op update --tid 1 --name MaxBurstLength --value 16776192
+tgtadm --lld iscsi --op show --mode target
+tgtadm --lld iscsi --op show --mode target --tid 1
+
+tgtadm --op delete --mode conn --tid 1 --sid 3 --cid 0
+tgtadm --op delete --mode conn --tid 2 --sid 0
+tgtadm --lld iscsi --mode target --op update --tid 1 --name InitiatorRecvDataSegmentLength --value 8388608
+tgtadm --op update --mode sys --name State -v offline
+tgtadm --op update --mode sys --name State -v ready
+-------
+
+=== Backup scripts
+
+There are two backup scripts
+
+.List of scripts
+*  backup_master.sh - manages starting of other scripts 
+*  iscsi_media_db_backup.sh - copies files from media to iscsi server. List of
+files to copy (modified or new)is selected from postgresql database. 
+*  iscsi_media_fullbackup.sh - backups media files to iscsi server or iscsi server media files
+to QNAP nas.
+
+Backup is started by cron :
+*  Every hour - backup_master.sh starts iscsi_media_db_backup.sh with parameters to backup 
+files modified or created within last hour.
+*  Every day at 3am - backup_master.sh starts iscsi_media_fullbackup.sh with parameters to backup
+files in /share direcotry with exception files in media
+*  Every Monday at 22pm - backup_master.sh starts iscsi_media_fullbackup.sh, first copy data from
+iscsi server to QNAP nas, then backup_master.sh waits until Friday 22pm and starts again 
+iscsi_media_fullbackup.sh to backup media to iscsi server (also deletes old files from iscsi server).
+
+
+Script 
+
+=== ISCSI/SAN Disaster Recovery plan
+
+There are two possibilities when disk array fails and whole environment is down or there
+is a requested down time. Because all machines are virtual and are booting from SAN network
+therefore disk array crash will make them unavailable.
+
+If we are in Disaster recovery we first need to boot whole environment from esx local copies.
+Every virtual machine has it's own copy placed on a local DataStore on ESX server.
+
+As a backup for SAN we set ISCSI network which is running on VLANID 107.
+Boot machines from local datastore they have __local_ in name.
+
+In a case in which iscsi server is not running it's required to start it *before* any other virtual
+machine in whole environment.
+
+Before starting __local_ machines it's needed to plug virtual cable to machine before starting them. 
+It was unplugged because of security reasons, where we do not want to allow production downtime if 
+__local_ machine will be started with running normal environment. 
+
+.Critical systems
+* Start database server *db01_local*
+* Start database frontend server *dbf02_local*
+* Start *ws01_local* and *ws02_local* servers
+* Start *aps01_local* and *aps02_local* and *aps03_local*
+* Start *int01_local* and *int02_local*
+* Start *haf01_local* and *haf02_local*
+
+.Non critical systems
+* Start *aps04_local* and *aps05_local*
+
+After this step everything should be running, and site should be accessible again. If we have
+requested downtime for whole environment the proper procedure for switching environment from 
+ISCSI to SAN would be this.
+
+.Critical systems
+* Shutdown *app01* and *aps02* only aps03 is 
+* Shutdown *ws01* and *haf01* and *int01*
+* Stop *db01* database server and manualy starts new one on *db02_local*
+* Shutdown *ws02* and *aps03* and *int02*
+* Shutdown *df01* and starts *df01_local*
+* Starts *ws01_local* and *aps01_local*  and *int01_local*
+* Starts *aps02_local* and *aps03_local* and *ws02_local* and *int02_local*
+* Start *haf01_local*
+* Shutdown *haf02* and start *haf02_local*
+
+.Non Critical Systems
+* Shutdown *aps04* and *aps05*
+* Start *aps04* and *aps05*

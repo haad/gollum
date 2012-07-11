@@ -1,0 +1,9 @@
+== Yum repository setup freal ==
+
+CSI: 17425595
+Login: narksuln@hotmail.com
+Pass: P@ss4lun.
+
+
+[1] https://linux.oracle.com/uln_faq.html
+[2] http://www.oracle.com/technetwork/topics/linux/yum-repository-setup-085606.html

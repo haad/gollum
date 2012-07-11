@@ -1,0 +1,1097 @@
+
+====================================
+== Cisco MDS switch configuration ==
+====================================
+
+
+=== Initial Configuration ===
+
+1) Login to Switch use USB2serial cable for more info see [1], [2]. 
+   Connect with minicom + with these options set
+
+	* 9800 bauds
+	* 8 data bits
+	* 1 stop bit
+	* N parity
+
+2) Switch password settings
+
+	Login: admin
+	Password: Admin1234
+	
+	Login: root
+	Password: Root12345
+	
+	Old switches passwords
+	Login: admin
+	Password: cam3lZOP
+
+3) Network 
+
+<<<<<<
+   Mgmt0 IPv4 address : 192.168.100.3
+   Mgmt0 IPv4 netmask : 255.255.255.0
+>>>>>>
+
+++++++ Cisco ++++++
+password strength-check
+username root password <user-password> role ?
+switchname switchA
+interface mgmt0
+  ip address 192.168.100.3 255.255.255.0
+  no shutdown
+ssh key rsa 1024 force
+feature ssh
+no feature telnet
+feature http-server
+no system default switchport shutdown
+system default switchport trunk mode on
+no system default zone default-zone permit
+no system default zone distribute full
+no system default zone mode enhanced
+++++++ /Cisco/ ++++++
+
+<<<<<< Switch A >>>>>>
+User Access Verification
+switchA login: admin
+Password: 
+Cisco Nexus Operating System (NX-OS) Software
+TAC support: http://www.cisco.com/tac
+Copyright (c) 2002-2009, Cisco Systems, Inc. All rights reserved.
+The copyrights to certain works contained in this software are
+owned by other third parties and used and distributed under
+license. Certain components of this software are licensed under
+the GNU General Public License (GPL) version 2.0 or the GNU
+Lesser General Public License (LGPL) Version 2.1. A copy of each
+such license is available at
+http://www.opensource.org/licenses/gpl-2.0.php and
+http://www.opensource.org/licenses/lgpl-2.1.php
+
+show running-config
+version 4.1(3a)
+role name default-role
+  description This is a system defined role and applies to all users.
+  rule 5 permit show feature environment
+  rule 4 permit show feature hardware
+  rule 3 permit show feature module
+  rule 2 permit show feature snmp
+  rule 1 permit show feature system
+username admin password 5 $1$MrWmIQyp$a.w0hCc8klgZ0NAqfi.Lj0  role network-admin
+ip domain-lookup
+ip host switchA 192.168.100.3
+aaa group server radius radius 
+snmp-server user admin network-admin auth md5 0x731ea247d018bde1ea70d790f416c9fd priv 0x731ea247d018bde1ea70d790f416c9fd locy
+switchname switchA
+line console
+boot kickstart bootflash:/m9100-s2ek9-kickstart-mz.4.1.3a.bin
+boot system bootflash:/m9100-s2ek9-mz.4.1.3a.bin 
+<<<<<< >>>>>>
+
+
+#########################
+### OLD Switch config ###
+#########################
+
+#### MDS01
+
+Config contains these changes against original running-config
+
+>>>>>> OLD MDS01 <<<<<<
+MDS01# show fcdomain domain-list 
+
+VSAN 1
+Number of domains: 1
+Domain ID              WWN
+---------    -----------------------
+ 0x1d(29)    20:01:00:0d:ec:5f:28:01 [Local] [Principal]
+>>>>>> <<<<<<
+
+>>>>>> NEW MDS01 <<<<<<
+MDS01# show fcdomain domain-list 
+
+VSAN 1
+Number of domains: 1
+Domain ID              WWN
+---------    -----------------------
+ 0x1b(27)    20:01:00:05:9b:2b:bb:41 [Local] [Principal]
+>>>>>> <<<<<<
+
+------
++ snmp-server host 192.168.254.9 traps version 2c public  udp-port 1163
++ ip default-gateway 192.168.10.1
++ vsan 1 wwn 23:01:00:00:87:00:19:8c fcid 0x1b1800 dynamic
+
+- vsan 1 wwn 23:01:00:00:87:00:19:8c fcid 0x1b0b01 dynamic
+- boot kickstart bootflash:/m9100-s2ek9-kickstart-mz.4.2.1.bin
+- boot system bootflash:/m9100-s2ek9-mz.4.2.1.bin
+------
+
+++++++
+!Command: show running-config
+!Time: Wed Jul  6 15:39:42 2011
+
+version 4.2(1)
+system default switchport trunk mode off
+role name default-role
+  description This is a system defined role and applies to all users.
+  rule 5 permit show feature environment
+  rule 4 permit show feature hardware
+  rule 3 permit show feature module
+  rule 2 permit show feature snmp
+  rule 1 permit show feature system
+username admin password 5 $1$R664YncP$1Q6dyVL.ICeFXVfjAL2k01  role network-admin
+ip domain-lookup
+ip domain-name reality.sk
+ip name-server 192.168.100.8
+ip host MDS01 192.168.10.22
+aaa group server radius radius 
+snmp-server user admin network-admin auth md5 0x5d82a7d0ac2288ff9ec4bed33846d68b priv 0x5d82a7d0ac2288ff9ec4bed33846d68b locy
+snmp-server host 192.168.10.248 traps version 2c public  udp-port 1163
+snmp-server host 192.168.10.248 traps version 2c public  udp-port 2162
+snmp-server host 192.168.10.252 traps version 2c public  udp-port 1163
+snmp-server host 192.168.254.9 traps version 2c public  udp-port 1163
+ntp server 192.168.100.8 prefer
+fcdomain fcid database
+  vsan 1 wwn 50:00:1f:e1:50:0f:da:7c fcid 0x1b0000 dynamic
+  vsan 1 wwn 50:00:1f:e1:50:0f:da:78 fcid 0x1b0100 dynamic
+  vsan 1 wwn 21:00:00:e0:8b:88:ce:b2 fcid 0x1b0200 dynamic
+  vsan 1 wwn 20:07:00:0d:ec:5f:28:00 fcid 0x1b0300 area dynamic
+  vsan 1 wwn 23:00:00:00:87:04:19:8e fcid 0x1b0400 dynamic
+  vsan 1 wwn 20:05:00:0d:ec:5f:28:00 fcid 0x1b0500 area dynamic
+  vsan 1 wwn 20:01:00:0d:ec:5f:28:00 fcid 0x1b0600 area dynamic
+  vsan 1 wwn 50:06:0e:80:10:45:64:20 fcid 0x1b0700 dynamic
+  vsan 1 wwn 50:06:0e:80:10:45:64:21 fcid 0x1b0800 dynamic
+  vsan 1 wwn 50:06:0e:80:10:45:64:23 fcid 0x1b0900 dynamic
+  vsan 1 wwn 50:06:0e:80:10:45:64:22 fcid 0x1b0a00 dynamic
+  vsan 1 wwn 23:00:00:00:87:00:19:8c fcid 0x1b0b00 dynamic
+  vsan 1 wwn 23:00:00:00:87:08:19:8c fcid 0x1b0c00 dynamic
+  vsan 1 wwn 23:00:00:00:87:0c:19:8e fcid 0x1b0d00 dynamic
+  vsan 1 wwn 20:34:00:a0:b8:68:69:30 fcid 0x1b0e00 dynamic
+  vsan 1 wwn 21:01:00:1b:32:33:a7:2c fcid 0x1b0f00 dynamic
+  vsan 1 wwn 20:25:00:a0:b8:68:69:30 fcid 0x1b1000 dynamic
+  vsan 1 wwn 20:34:00:a0:b8:68:bd:88 fcid 0x1b1100 dynamic
+  vsan 1 wwn 20:35:00:a0:b8:68:bd:88 fcid 0x1b1200 dynamic
+  vsan 1 wwn 20:24:00:a0:b8:74:a0:28 fcid 0x1b1300 dynamic
+  vsan 1 wwn 20:25:00:a0:b8:74:a0:28 fcid 0x1b1400 dynamic
+  vsan 1 wwn 21:00:00:1b:32:9f:4f:02 fcid 0x1b1500 dynamic
+  vsan 1 wwn 21:00:00:1b:32:9e:4d:fd fcid 0x1b1600 dynamic
+  vsan 1 wwn 21:00:00:1b:32:9e:c8:fc fcid 0x1b1700 dynamic
+  vsan 1 wwn 23:01:00:00:87:00:19:8c fcid 0x1b1800 dynamic
+ip default-gateway 192.168.10.1
+switchname MDS01
+line console
+interface fc1/1
+interface fc1/2
+interface fc1/3
+interface fc1/4
+interface fc1/5
+interface fc1/6
+interface fc1/7
+interface fc1/8
+interface fc1/9
+interface fc1/10
+interface fc1/11
+interface fc1/12
+interface fc1/13
+interface fc1/14
+interface fc1/15
+interface fc1/16
+interface fc1/17
+interface fc1/18
+interface fc1/19
+interface fc1/20
+interface fc1/21
+interface fc1/22
+interface fc1/23
+interface fc1/24
+!Full Zone Database Section for vsan 1
+zone name Z_FC1_7_FC1_1_V1 vsan 1
+    member interface fc1/7 swwn 20:00:00:0d:ec:5f:28:00
+    member interface fc1/1 swwn 20:00:00:0d:ec:5f:28:00
+
+zone name Z_FC1_7_FC1_2_V1 vsan 1
+    member interface fc1/7 swwn 20:00:00:0d:ec:5f:28:00
+    member interface fc1/2 swwn 20:00:00:0d:ec:5f:28:00
+
+zone name Z_FC1_7_FC1_3_V1 vsan 1
+    member interface fc1/7 swwn 20:00:00:0d:ec:5f:28:00
+    member interface fc1/3 swwn 20:00:00:0d:ec:5f:28:00
+
+zoneset name ZONESET_V1 vsan 1
+    member Z_FC1_7_FC1_1_V1
+    member Z_FC1_7_FC1_2_V1
+    member Z_FC1_7_FC1_3_V1
+
+zoneset activate name ZONESET_V1 vsan 1
+
+interface fc1/1
+  switchport description ESX01_A
+  port-license acquire
+  no shutdown
+
+interface fc1/2
+  switchport description ESX02_A
+  port-license acquire
+  no shutdown
+
+interface fc1/3
+  switchport description ESX03_A
+  port-license acquire
+  no shutdown
+
+interface fc1/4
+  port-license acquire
+
+interface fc1/5
+  port-license acquire
+
+interface fc1/6
+  port-license acquire
+
+interface fc1/7
+  switchport description ST2540_A1
+  port-license acquire
+  no shutdown
+
+interface fc1/8
+  switchport description ST2540_B1
+  port-license acquire
+  no shutdown
+
+interface fc1/9
+
+interface fc1/10
+
+interface fc1/11
+
+interface fc1/12
+
+interface fc1/13
+
+interface fc1/14
+
+interface fc1/15
+
+interface fc1/16
+
+interface fc1/17
+
+interface fc1/18
+
+interface fc1/19
+
+interface fc1/20
+
+interface fc1/21
+
+interface fc1/22
+
+interface fc1/23
+
+interface fc1/24
+
+interface mgmt0
+  ip address 192.168.10.22 255.255.255.0
+  switchport speed 100
+
+! Copying running-config to scp location to make a backup
+copy running-config scp://root@192.168.100.8/root/cisco/san/mds01-06072011.txt
+++++++
+
+Applying config files
+
+^^^^^^
+User Access Verification
+192.168.10.22 login: admin
+Password: 
+Cisco Nexus Operating System (NX-OS) Software
+TAC support: http://www.cisco.com/tac
+Copyright (c) 2002-2009, Cisco Systems, Inc. All rights reserved.
+The copyrights to certain works contained in this software are
+owned by other third parties and used and distributed under
+license. Certain components of this software are licensed under
+the GNU General Public License (GPL) version 2.0 or the GNU
+Lesser General Public License (LGPL) Version 2.1. A copy of each
+such license is available at
+http://www.opensource.org/licenses/gpl-2.0.php and
+http://www.opensource.org/licenses/lgpl-2.1.php
+switch# config
+Enter configuration commands, one per line.  End with CNTL/Z.
+switch(config)# !Command: show running-config
+switch(config)# !Time: Wed Jul  6 15:39:42 2011
+switch(config)# 
+switch(config)# version 4.2(1)
+es to all users.
+  rule 5 permit show feature environment
+  rule 4 permit show feature hardware
+switch(config)# system default switchport trunk mode off
+ure system
+username admin password 5 $1$R664YncP$1Q6dyVL.ICeFXVfjAL2k01  role network-admin
+ip domain-lookup
+ip domain-name reality.sk
+ip name-server 192.168.100.8
+ip host MDS01 192.168.10.22
+aaa group server radius radius 
+snmp-server user admin network-admin auth md5 0x5d82a7d0ac2288ff9ec4bed33846d68b priv 0x5d82a7d0ac2288ff9ec4bed33846d68b locy
+snmp-server host 192.168.10.248 traps version 2c public  udp-port 1163
+snmp-server host 192.168.10.248 traps version 2c public  udp-port 2162
+snmp-server host 192.168.10.252 traps version 2c public  udp-port 1163
+switch(config)# role name default-role
+fcdomain fcid database
+  vsan 1 wwn 50:00:1f:e1:50:0f:da:7c fcid 0x1b0000 dynamic
+switch(config-role)#   description This is a system defined role and applies to all users.
+0:07:00:0d:ec:5f:28:00 fcid 0x1b0300 area dynamic
+switch(config-role)#   rule 5 permit show feature environment
+:00:0d:ec:5f:28:00 fcid 0x1b0600 area dynamic
+  vsan 1 wwn 50:06:0e:80:10:45:64:20 fcid 0x1b0700 dynamic
+switch(config-role)#   rule 4 permit show feature hardware
+0900 dynamic
+  vsan 1 wwn 50:06:0e:80:10:45:64:22 fcid 0x1b0a00 dynamic
+switch(config-role)#   rule 3 permit show feature module
+ wwn 23:01:00:00:87:00:19:8c fcid 0x1b0b01 dynamic
+  vsan 1 wwn 23:00:00:00:87:0c:19:8e fcid 0x1b0d00 dynamic
+switch(config-role)#   rule 2 permit show feature snmp
+33:a7:2c fcid 0x1b0f00 dynamic
+  vsan 1 wwn 20:25:00:a0:b8:68:69:30 fcid 0x1b1000 dynamic
+switch(config-role)#   rule 1 permit show feature system
+wwn 20:24:00:a0:b8:74:a0:28 fcid 0x1b1300 dynamic
+  vsan 1 wwn 20:25:00:a0:b8:74:a0:28 fcid 0x1b1400 dynamic
+switch(config-role)# username admin password 5 $1$R664YncP$1Q6dyVL.ICeFXVfjAL2k01  role network-admin
+:9e:c8:fc fcid 0x1b1700 dynamic
+ip default-gateway 192.168.10.1
+switchname MDS01
+line console
+switch(config)# ip domain-lookups2ek9-kickstart-mz.4.2.1.b
+rface fc1/1
+interface fc1/2
+interface fc1/3
+interface fc1/4
+interface fc1/5
+interface fc1/6
+switch(config)# ip domain-name reality.sk
+11
+interface fc1/12
+interface fc1/13
+interface fc1/14
+interface fc1/15
+interface fc1/16
+interface fc1/17
+interface fc1/18
+interface fc1/19
+interface fc1/20
+interface fc1/21
+switch(config)# ip name-server 192.168.100.8
+ Z_FC1_7_FC1_1_V1 vsan 1
+    member interface fc1/7 swwn 20:00:00:0d:ec:5f:28:00
+    member interface fc1/1 swwn 20:00:00:0d:ec:5f:28:00
+
+zone name Z_FC1_7_FC1_2_V1 vsan 1
+switch(config)# ip host MDS01 192.168.10.22
+2 swwn 20:00:00:0d:ec:5f:28:00
+
+zone name Z_FC1_7_FC1_3_V1 vsan 1
+    member interface fc1/7 swwn 20:00:00:0d:ec:5f:28:00
+switch(config)# aaa group server radius radius 
+_FC1_1_V1
+    member Z_FC1_7_FC1_2_V1
+    member Z_FC1_7_FC1_3_V1
+
+switch(config-radius)# snmp-server user admin network-admin auth md5 0x5d82a7d0ac2288ff9ec4bed33846d68b priv 0x5d82a7d0ac228y
+                                                                                                                            ^
+% Invalid command at '^' marker.
+hutdown
+
+interface fc1/3
+  switchport description ESX03_A
+  port-license acquire
+  no shutdown
+
+interface fc1/4
+  port-license acquire
+
+interface fc1/5
+  port-license acquire
+
+interface fc1/6
+  port-license acquire
+
+interface fc1/7
+  switchport description ST2540_A1
+  port-license acquire
+  no shutdown
+
+interface fc1/8
+  switchport description ST2540_B1
+  port-license acquire
+  no shutdown
+
+interface fc1/9
+
+interface fc1/10
+
+interface fc1/11
+
+interface fc1/12
+
+interface fc1/13
+
+interface fc1/14
+
+interface fc1/15
+
+interface fc1/16
+
+interface fc1/17
+
+interface fc1/18
+
+interface fc1/19
+
+interface fc1/20
+
+interface fc1/21
+
+interface fc1/22
+
+interface fc1/23
+
+interface fc1/24
+
+interface mgmt0
+  ip address 192.168.10.22 255.255.255.0
+switch(config-radius)# snmp-server host 192.168.10.248 traps version 2c public  udp-port 1163
+switch(config)# snmp-server host 192.168.10.248 traps version 2c public  udp-port 2162
+switch(config)# snmp-server host 192.168.10.252 traps version 2c public  udp-port 1163
+switch(config)# snmp-server host 192.168.254.9 traps version 2c public  udp-port 1163
+switch(config)# ntp server 192.168.100.8 prefer
+switch(config)# fcdomain fcid database
+switch(config-fcid-db)#   vsan 1 wwn 50:00:1f:e1:50:0f:da:7c fcid 0x1b0000 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 50:00:1f:e1:50:0f:da:78 fcid 0x1b0100 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 21:00:00:e0:8b:88:ce:b2 fcid 0x1b0200 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 20:07:00:0d:ec:5f:28:00 fcid 0x1b0300 area dynamic
+switch(config-fcid-db)#   vsan 1 wwn 23:00:00:00:87:04:19:8e fcid 0x1b0400 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 20:05:00:0d:ec:5f:28:00 fcid 0x1b0500 area dynamic
+switch(config-fcid-db)#   vsan 1 wwn 20:01:00:0d:ec:5f:28:00 fcid 0x1b0600 area dynamic
+switch(config-fcid-db)#   vsan 1 wwn 50:06:0e:80:10:45:64:20 fcid 0x1b0700 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 50:06:0e:80:10:45:64:21 fcid 0x1b0800 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 50:06:0e:80:10:45:64:23 fcid 0x1b0900 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 50:06:0e:80:10:45:64:22 fcid 0x1b0a00 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 23:00:00:00:87:00:19:8c fcid 0x1b0b00 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 23:00:00:00:87:08:19:8c fcid 0x1b0c00 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 23:01:00:00:87:00:19:8c fcid 0x1b0b01 dynamic
+Error: Invalid FCIDs.
+switch(config-fcid-db)#   vsan 1 wwn 23:00:00:00:87:0c:19:8e fcid 0x1b0d00 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 20:34:00:a0:b8:68:69:30 fcid 0x1b0e00 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 21:01:00:1b:32:33:a7:2c fcid 0x1b0f00 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 20:25:00:a0:b8:68:69:30 fcid 0x1b1000 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 20:34:00:a0:b8:68:bd:88 fcid 0x1b1100 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 20:35:00:a0:b8:68:bd:88 fcid 0x1b1200 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 20:24:00:a0:b8:74:a0:28 fcid 0x1b1300 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 20:25:00:a0:b8:74:a0:28 fcid 0x1b1400 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 21:00:00:1b:32:9f:4f:02 fcid 0x1b1500 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 21:00:00:1b:32:9e:4d:fd fcid 0x1b1600 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 21:00:00:1b:32:9e:c8:fc fcid 0x1b1700 dynamic
+switch(config-fcid-db)# ip default-gateway 192.168.10.1
+switch(config)# switchname MDS01
+MDS01(config)# line console
+MDS01(config-console)# boot kickstart bootflash:/m9100-s2ek9-kickstart-mz.4.2.1.bin
+Failed to configure bootvar kickstart for sup-1: No such file or directory (0x807B0002)
+MDS01(config)# boot system bootflash:/m9100-s2ek9-mz.4.2.1.bin 
+Failed to configure bootvar system for sup-1: No such file or directory (0x807B0002)
+MDS01(config)# interface fc1/1
+MDS01(config-if)# interface fc1/2
+MDS01(config-if)# interface fc1/3
+MDS01(config-if)# interface fc1/4
+MDS01(config-if)# interface fc1/5
+MDS01(config-if)# interface fc1/6
+MDS01(config-if)# interface fc1/7
+MDS01(config-if)# interface fc1/8
+MDS01(config-if)# interface fc1/9
+MDS01(config-if)# interface fc1/10
+MDS01(config-if)# interface fc1/11
+MDS01(config-if)# interface fc1/12
+MDS01(config-if)# interface fc1/13
+MDS01(config-if)# interface fc1/14
+MDS01(config-if)# interface fc1/15
+MDS01(config-if)# interface fc1/16
+MDS01(config-if)# interface fc1/17
+MDS01(config-if)# interface fc1/18
+MDS01(config-if)# interface fc1/19
+MDS01(config-if)# interface fc1/20
+MDS01(config-if)# interface fc1/21
+MDS01(config-if)# interface fc1/22
+MDS01(config-if)# interface fc1/23
+MDS01(config-if)# interface fc1/24
+MDS01(config-if)# !Full Zone Database Section for vsan 1
+MDS01(config-if)# zone name Z_FC1_7_FC1_1_V1 vsan 1
+MDS01(config-zone)#     member interface fc1/7 swwn 20:00:00:0d:ec:5f:28:00
+MDS01(config-zone)#     member interface fc1/1 swwn 20:00:00:0d:ec:5f:28:00
+MDS01(config-zone)# 
+MDS01(config-zone)# zone name Z_FC1_7_FC1_2_V1 vsan 1
+MDS01(config-zone)#     member interface fc1/7 swwn 20:00:00:0d:ec:5f:28:00
+MDS01(config-zone)#     member interface fc1/2 swwn 20:00:00:0d:ec:5f:28:00
+MDS01(config-zone)# 
+MDS01(config-zone)# zone name Z_FC1_7_FC1_3_V1 vsan 1
+MDS01(config-zone)#     member interface fc1/7 swwn 20:00:00:0d:ec:5f:28:00
+MDS01(config-zone)#     member interface fc1/3 swwn 20:00:00:0d:ec:5f:28:00
+MDS01(config-zone)# 
+MDS01(config-zone)# zoneset name ZONESET_V1 vsan 1
+MDS01(config-zoneset)#     member Z_FC1_7_FC1_1_V1
+MDS01(config-zoneset)#     member Z_FC1_7_FC1_2_V1
+MDS01(config-zoneset)#     member Z_FC1_7_FC1_3_V1
+MDS01(config-zoneset)# 
+MDS01(config-zoneset)# zoneset activate name ZONESET_V1 vsan 1
+Zoneset activation initiated. check zone status
+MDS01(config)# 
+MDS01(config)# interface fc1/1
+MDS01(config-if)#   switchport description ESX01_A
+MDS01(config-if)#   port-license acquire
+MDS01(config-if)#   no shutdown
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/2
+MDS01(config-if)#   switchport description ESX02_A
+MDS01(config-if)#   port-license acquire
+MDS01(config-if)#   no shutdown
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/3
+MDS01(config-if)#   switchport description ESX03_A
+MDS01(config-if)#   port-license acquire
+MDS01(config-if)#   no shutdown
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/4
+MDS01(config-if)#   port-license acquire
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/5
+MDS01(config-if)#   port-license acquire
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/6
+MDS01(config-if)#   port-license acquire
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/7
+MDS01(config-if)#   switchport description ST2540_A1
+MDS01(config-if)#   port-license acquire
+MDS01(config-if)#   no shutdown
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/8
+MDS01(config-if)#   switchport description ST2540_B1
+MDS01(config-if)#   port-license acquire
+MDS01(config-if)#   no shutdown
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/9
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/10
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/11
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/12
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/13
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/14
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/15
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/16
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/17
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/18
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/19
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/20
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/21
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/22
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/23
+MDS01(config-if)# 
+MDS01(config-if)# interface fc1/24
+MDS01(config-if)# 
+MDS01(config-if)# interface mgmt0
+MDS01(config-if)#   ip address 192.168.10.22 255.255.255.0
+MDS01(config-if)#   switchport speed 100
+MDS01(config-if)# 
+MDS01# configure 
+Enter configuration commands, one per line.  End with CNTL/Z.   
+MDS01(config)# fcdomain fcid database 
+MDS01(config-fcid-db)# vsan 1 wwn 23:01:00:00:87:00:19:8c fcid 0x1b1800 dynamic
+MDS01(config-fcid-db)# 
+MDS01# copy running-config startup-config 
+[########################################] 100%
+^^^^^^
+
+####
+
+#### MDS02
+
+Config contains these changes against original running-config
+
+>>>>>> OLD MDS02 <<<<<<
+MDS02# show fcdomain domain-list 
+
+VSAN 1
+Number of domains: 1
+Domain ID              WWN
+---------    -----------------------
+ 0x62(98)    20:01:00:0d:ec:5f:09:01 [Local] [Principal]
+>>>>>> <<<<<<
+
+>>>>>> NEW MDS02 <<<<<<
+MDS02# show fcdomain domain-list 
+
+VSAN 1
+Number of domains: 1
+Domain ID              WWN
+---------    -----------------------
+0xed(237)    20:01:00:05:9b:28:cb:c1 [Local] [Principal]
+>>>>>> <<<<<<
+
+------
++ snmp-server host 192.168.10.248 traps version 2c public  udp-port 1163
+------
+
+++++++
+!Command: show running-config
+!Time: Mon Jul  4 15:03:30 2011
+
+version 4.2(1)
+role name default-role
+  description This is a system defined role and applies to all users.
+  rule 5 permit show feature environment
+  rule 4 permit show feature hardware
+  rule 3 permit show feature module
+  rule 2 permit show feature snmp
+  rule 1 permit show feature system
+username admin password 5 $1$z9r4YrXg$inbbAU6ZVS/r3jIn5ly5L0  role network-admin
+ip domain-lookup
+ip domain-name reality.sk
+ip name-server 192.168.100.8
+ip host MDS02 192.168.10.23
+aaa group server radius radius
+snmp-server user admin network-admin auth md5 0xc6451243700dd0bfe360970a0071c268 priv 0xc6451243700dd0bfe360970a0071c268 localizedkey
+snmp-server host 192.168.10.248 traps version 2c public  udp-port 1163
+snmp-server host 192.168.10.248 traps version 2c public  udp-port 2162
+snmp-server host 192.168.10.252 traps version 2c public  udp-port 1163
+snmp-server host 192.168.254.9 traps version 2c public  udp-port 1163
+ntp server 192.168.100.8 prefer
+fcdomain fcid database
+  vsan 1 wwn 21:00:00:e0:8b:94:32:85 fcid 0xed0000 dynamic
+  vsan 1 wwn 21:00:00:e0:8b:94:49:8a fcid 0xed0100 dynamic
+  vsan 1 wwn 21:00:00:e0:8b:94:80:83 fcid 0xed0200 dynamic
+  vsan 1 wwn 21:00:00:e0:8b:94:09:1b fcid 0xed0300 dynamic
+  vsan 1 wwn 20:04:00:a0:b8:29:b9:5a fcid 0xed0400 dynamic
+  vsan 1 wwn 20:05:00:a0:b8:29:b9:5a fcid 0xed0500 dynamic
+  vsan 1 wwn 21:00:00:1b:32:13:a7:2c fcid 0xed0600 dynamic
+  vsan 1 wwn 50:01:43:80:02:00:70:58 fcid 0xed0700 dynamic
+  vsan 1 wwn 21:00:00:1b:32:12:b9:02 fcid 0xed0800 dynamic
+  vsan 1 wwn 20:24:00:a0:b8:68:69:30 fcid 0xed0900 dynamic
+  vsan 1 wwn 20:24:00:a0:b8:68:bd:88 fcid 0xed0a00 dynamic
+  vsan 1 wwn 20:25:00:a0:b8:68:bd:88 fcid 0xed0b00 dynamic
+  vsan 1 wwn 21:00:00:e0:8b:9c:4c:bf fcid 0xed0c00 dynamic
+  vsan 1 wwn 20:34:00:a0:b8:74:a0:28 fcid 0xed0d00 dynamic
+  vsan 1 wwn 20:35:00:a0:b8:74:a0:28 fcid 0xed0e00 dynamic
+  vsan 1 wwn 21:00:00:1b:32:9e:7e:fd fcid 0xed0f00 dynamic
+  vsan 1 wwn 21:00:00:1b:32:9f:f5:02 fcid 0xed1000 dynamic
+  vsan 1 wwn 21:00:00:1b:32:9e:00:fd fcid 0xed1100 dynamic
+ip default-gateway 192.168.10.1
+switchname MDS02
+line console
+boot kickstart bootflash:/m9100-s2ek9-kickstart-mz.4.2.1.bin
+boot system bootflash:/m9100-s2ek9-mz.4.2.1.bin 
+interface fc1/1
+interface fc1/2
+interface fc1/3
+interface fc1/4
+interface fc1/5
+interface fc1/6
+interface fc1/7
+interface fc1/8
+interface fc1/9
+interface fc1/10
+interface fc1/11
+interface fc1/12
+interface fc1/13
+interface fc1/14
+interface fc1/15
+interface fc1/16
+interface fc1/17
+interface fc1/18
+interface fc1/19
+interface fc1/20
+interface fc1/21
+interface fc1/22
+interface fc1/23
+interface fc1/24
+!Full Zone Database Section for vsan 1
+zone name Z_FC1_8_FC1_3_V1 vsan 1
+    member interface fc1/8 swwn 20:00:00:0d:ec:5f:09:00
+    member interface fc1/3 swwn 20:00:00:0d:ec:5f:09:00
+
+zone name Z_FC1_8_FC1_1_V1 vsan 1
+    member interface fc1/8 swwn 20:00:00:0d:ec:5f:09:00
+    member interface fc1/1 swwn 20:00:00:0d:ec:5f:09:00
+
+zone name Z_FC1_8_FC1_2_V1 vsan 1
+    member interface fc1/8 swwn 20:00:00:0d:ec:5f:09:00
+    member interface fc1/2 swwn 20:00:00:0d:ec:5f:09:00
+
+zoneset name ZONESET_V1 vsan 1
+    member Z_FC1_8_FC1_3_V1
+    member Z_FC1_8_FC1_1_V1
+    member Z_FC1_8_FC1_2_V1
+
+zoneset activate name ZONESET_V1 vsan 1
+
+interface fc1/1
+  switchport description ESX01_B
+  port-license acquire
+  no shutdown
+
+interface fc1/2
+  switchport description ESX02_B
+  port-license acquire
+  no shutdown
+
+interface fc1/3
+  switchport description ESX03_B
+  port-license acquire
+  switchport owner ESX03_B
+  no shutdown
+
+interface fc1/4
+  port-license acquire
+
+interface fc1/5
+  port-license acquire
+
+interface fc1/6
+  port-license acquire
+
+interface fc1/7
+  switchport description ST2540_A2
+  port-license acquire
+  no shutdown
+
+interface fc1/8
+  switchport description ST2500_B2
+  port-license acquire
+  no shutdown
+
+interface fc1/9
+
+interface fc1/10
+
+interface fc1/11
+
+interface fc1/12
+
+interface fc1/13
+
+interface fc1/14
+
+interface fc1/15
+
+interface fc1/16
+
+interface fc1/17
+
+interface fc1/18
+
+interface fc1/19
+
+interface fc1/20
+
+interface fc1/21
+
+interface fc1/22
+
+interface fc1/23
+
+interface fc1/24
+
+interface mgmt0
+  ip address 192.168.10.23 255.255.255.0
+
+
+! Copying running-config to scp location to make a backup
+copy running-config scp://root@192.168.100.8/root/cisco/san/mds02-04072011.txt
+++++++
+
+^^^^^^
+User Access Verification
+192.168.10.23 login: admin
+Password: 
+Cisco Nexus Operating System (NX-OS) Software
+TAC support: http://www.cisco.com/tac
+Copyright (c) 2002-2009, Cisco Systems, Inc. All rights reserved.
+The copyrights to certain works contained in this software are
+owned by other third parties and used and distributed under
+license. Certain components of this software are licensed under
+the GNU General Public License (GPL) version 2.0 or the GNU
+Lesser General Public License (LGPL) Version 2.1. A copy of each
+such license is available at
+http://www.opensource.org/licenses/gpl-2.0.php and
+http://www.opensource.org/licenses/lgpl-2.1.php
+switch# 
+switch# config
+Enter configuration commands, one per line.  End with CNTL/Z.
+switch(config)# !Command: show running-config
+switch(config)# !Time: Mon Jul  4 15:03:30 2011
+switch(config)# 
+switch(config)# version 4.2(1)
+ature environment
+  rule 4 permit show feature hardware
+  rule 3 permit show feature module
+switch(config)# role name default-role
+e admin password 5 $1$z9r4YrXg$inbbAU6ZVS/r3jIn5ly5L0  role network-admin
+ip domain-lookup
+switch(config-role)#   description This is a system defined role and applies to all users.
+switch(config-role)#   rule 5 permit show feature environment0a0071c268 priv 0xc6451243700dd0bfe360970a0071c268 l
+switch(config-role)#   rule 4 permit show feature hardware
+nmp-server host 192.168.254.9 traps version 2c public  udp-port 1163
+ntp server 192.168.100.8 prefer
+fcdomain fcid database
+switch(config-role)#   rule 3 permit show feature module
+ fcid 0xed0100 dynamic
+  vsan 1 wwn 21:00:00:e0:8b:94:80:83 fcid 0xed0200 dynamic
+switch(config-role)#   rule 2 permit show feature snmpa
+0:b8:29:b9:5a fcid 0xed0500 dynamic
+  vsan 1 wwn 21:00:00:1b:32:13:a7:2c fcid 0xed0600 dynamic
+switch(config-role)#   rule 1 permit show feature system
+ wwn 20:24:00:a0:b8:68:69:30 fcid 0xed0900 dynamic
+  vsan 1 wwn 20:24:00:a0:b8:68:bd:88 fcid 0xed0a00 dynamic
+switch(config-role)# username admin password 5 $1$z9r4YrXg$inbbAU6ZVS/r3jIn5ly5L0  role network-admin
+0:28 fcid 0xed0d00 dynamic
+  vsan 1 wwn 20:35:00:a0:b8:74:a0:28 fcid 0xed0e00 dynamic
+  vsan 1 wwn 21:00:00:1b:32:9e:7e:fd fcid 0xed0f00 dynamic
+switch(config)# ip domain-lookup
+ic
+  vsan 1 wwn 21:00:00:1b:32:9e:00:fd fcid 0xed1100 dynamic
+ip default-gateway 192.168.10.1
+switch(config)# ip domain-name reality.sk
+start-mz.4.2.1.bin
+boot system bootflash:/m9100-s2ek9-mz.4.2.1.bin 
+interface fc1/1
+interface fc1/2
+interface fc1/3
+interface fc1/4
+interface fc1/5
+interface fc1/6
+interface fc1/7
+switch(config)# ip name-server 192.168.100.8
+1/13
+interface fc1/14
+interface fc1/15
+interface fc1/16
+interface fc1/17
+interface fc1/18
+interface fc1/19
+interface fc1/20
+interface fc1/21
+interface fc1/22
+interface fc1/23
+switch(config)# ip host MDS02 192.168.10.23
+n 1
+    member interface fc1/8 swwn 20:00:00:0d:ec:5f:09:00
+    member interface fc1/3 swwn 20:00:00:0d:ec:5f:09:00
+
+zone name Z_FC1_8_FC1_1_V1 vsan 1
+switch(config)# aaa group server radius radius 
+fc1/1 swwn 20:00:00:0d:ec:5f:09:00
+
+zone name Z_FC1_8_FC1_2_V1 vsan 1
+switch(config-radius)# snmp-server user admin network-admin auth md5 0xc6451243700dd0bfe360970a0071c268 priv 0xc6451243700ddy
+1_8_FC1_2_V1
+
+zoneset activate name ZONESET_V1 vsan 1
+
+interface fc1/1
+  switchport description ESX01_B
+  port-license acquire
+switch(config)# snmp-server host 192.168.10.248 traps version 2c public  udp-port 1163
+3
+  switchport description ESX03_B
+  port-license acquire
+  switchport owner ESX03_B
+  no shutdown
+
+switch(config)# snmp-server host 192.168.10.248 traps version 2c public  udp-port 2162
+ace fc1/7
+  switchport description ST2540_A2
+  port-license acquire
+  no shutdown
+
+interface fc1/8
+switch(config)# snmp-server host 192.168.10.252 traps version 2c public  udp-port 1163
+e fc1/11
+
+interface fc1/12
+
+interface fc1/13
+
+interface fc1/14
+
+interface fc1/15
+
+interface fc1/16
+
+switch(config)# snmp-server host 192.168.254.9 traps version 2c public  udp-port 1163
+ce fc1/24
+
+interface mgmt0
+switch(config)# ntp server 192.168.100.8 prefer
+switch(config)# fcdomain fcid database
+switch(config-fcid-db)#   vsan 1 wwn 21:00:00:e0:8b:94:32:85 fcid 0xed0000 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 21:00:00:e0:8b:94:49:8a fcid 0xed0100 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 21:00:00:e0:8b:94:80:83 fcid 0xed0200 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 21:00:00:e0:8b:94:09:1b fcid 0xed0300 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 20:04:00:a0:b8:29:b9:5a fcid 0xed0400 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 20:05:00:a0:b8:29:b9:5a fcid 0xed0500 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 21:00:00:1b:32:13:a7:2c fcid 0xed0600 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 50:01:43:80:02:00:70:58 fcid 0xed0700 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 21:00:00:1b:32:12:b9:02 fcid 0xed0800 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 20:24:00:a0:b8:68:69:30 fcid 0xed0900 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 20:24:00:a0:b8:68:bd:88 fcid 0xed0a00 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 20:25:00:a0:b8:68:bd:88 fcid 0xed0b00 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 21:00:00:e0:8b:9c:4c:bf fcid 0xed0c00 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 20:34:00:a0:b8:74:a0:28 fcid 0xed0d00 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 20:35:00:a0:b8:74:a0:28 fcid 0xed0e00 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 21:00:00:1b:32:9e:7e:fd fcid 0xed0f00 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 21:00:00:1b:32:9f:f5:02 fcid 0xed1000 dynamic
+switch(config-fcid-db)#   vsan 1 wwn 21:00:00:1b:32:9e:00:fd fcid 0xed1100 dynamic
+switch(config-fcid-db)# ip default-gateway 192.168.10.1
+switch(config)# switchname MDS02
+MDS02(config)# line console
+MDS02(config-console)# boot kickstart bootflash:/m9100-s2ek9-kickstart-mz.4.2.1.bin
+Failed to configure bootvar kickstart for sup-1: No such file or directory (0x807B0002)
+MDS02(config)# boot system bootflash:/m9100-s2ek9-mz.4.2.1.bin 
+Failed to configure bootvar system for sup-1: No such file or directory (0x807B0002)
+MDS02(config)# interface fc1/1
+MDS02(config-if)# interface fc1/2
+MDS02(config-if)# interface fc1/3
+MDS02(config-if)# interface fc1/4
+MDS02(config-if)# interface fc1/5
+MDS02(config-if)# interface fc1/6
+MDS02(config-if)# interface fc1/7
+MDS02(config-if)# interface fc1/8
+MDS02(config-if)# interface fc1/9
+MDS02(config-if)# interface fc1/10
+MDS02(config-if)# interface fc1/11
+MDS02(config-if)# interface fc1/12
+MDS02(config-if)# interface fc1/13
+MDS02(config-if)# interface fc1/14
+MDS02(config-if)# interface fc1/15
+MDS02(config-if)# interface fc1/16
+MDS02(config-if)# interface fc1/17
+MDS02(config-if)# interface fc1/18
+MDS02(config-if)# interface fc1/19
+MDS02(config-if)# interface fc1/20
+MDS02(config-if)# interface fc1/21
+MDS02(config-if)# interface fc1/22
+MDS02(config-if)# interface fc1/23
+MDS02(config-if)# interface fc1/24
+MDS02(config-if)# !Full Zone Database Section for vsan 1
+MDS02(config-if)# zone name Z_FC1_8_FC1_3_V1 vsan 1
+MDS02(config-zone)#     member interface fc1/8 swwn 20:00:00:0d:ec:5f:09:00
+MDS02(config-zone)#     member interface fc1/3 swwn 20:00:00:0d:ec:5f:09:00
+MDS02(config-zone)# 
+MDS02(config-zone)# zone name Z_FC1_8_FC1_1_V1 vsan 1
+MDS02(config-zone)#     member interface fc1/8 swwn 20:00:00:0d:ec:5f:09:00
+MDS02(config-zone)#     member interface fc1/1 swwn 20:00:00:0d:ec:5f:09:00
+MDS02(config-zone)# 
+MDS02(config-zone)# zone name Z_FC1_8_FC1_2_V1 vsan 1
+MDS02(config-zone)#     member interface fc1/8 swwn 20:00:00:0d:ec:5f:09:00
+MDS02(config-zone)#     member interface fc1/2 swwn 20:00:00:0d:ec:5f:09:00
+MDS02(config-zone)# 
+MDS02(config-zone)# zoneset name ZONESET_V1 vsan 1
+MDS02(config-zoneset)#     member Z_FC1_8_FC1_3_V1
+MDS02(config-zoneset)#     member Z_FC1_8_FC1_1_V1
+MDS02(config-zoneset)#     member Z_FC1_8_FC1_2_V1
+MDS02(config-zoneset)# 
+MDS02(config-zoneset)# zoneset activate name ZONESET_V1 vsan 1
+Zoneset activation initiated. check zone status
+MDS02(config)# 
+MDS02(config)# interface fc1/1
+MDS02(config-if)#   switchport description ESX01_B
+MDS02(config-if)#   port-license acquire
+MDS02(config-if)#   no shutdown
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/2
+MDS02(config-if)#   switchport description ESX02_B
+MDS02(config-if)#   port-license acquire
+MDS02(config-if)#   no shutdown
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/3
+MDS02(config-if)#   switchport description ESX03_B
+MDS02(config-if)#   port-license acquire
+MDS02(config-if)#   switchport owner ESX03_B
+MDS02(config-if)#   no shutdown
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/4
+MDS02(config-if)#   port-license acquire
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/5
+MDS02(config-if)#   port-license acquire
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/6
+MDS02(config-if)#   port-license acquire
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/7
+MDS02(config-if)#   switchport description ST2540_A2
+MDS02(config-if)#   port-license acquire
+MDS02(config-if)#   no shutdown
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/8
+MDS02(config-if)#   switchport description ST2500_B2
+MDS02(config-if)#   port-license acquire
+MDS02(config-if)#   no shutdown
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/9
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/10
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/11
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/12
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/13
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/14
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/15
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/16
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/17
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/18
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/19
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/20
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/21
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/22
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/23
+MDS02(config-if)# 
+MDS02(config-if)# interface fc1/24
+MDS02(config-if)# 
+MDS02(config-if)# interface mgmt0
+MDS02(config-if)#   ip address 192.168.10.23 255.255.255.0
+MDS02(config-if)# 
+MDS02# copy running-config startup-config 
+[########################################] 100%
+MDS02#
+^^^^^^
+
+####
+
+
+=== Links ===
+
+[1] http://www.cisco.com/en/US/docs/storage/san_switches/mds9000/sw/rel_2_x/fabricware/configuration/guide/9020pdf.pdf
+[2] http://www.prolific.com.tw/support/files/%5CIO%20Cable%5CPL-2303%5CDrivers%20-%20Generic%5CMacOS%5CMacOS%2010.x%5Cmd_PL2303_MacOSX10.6_dmg_v1.4.0.zip

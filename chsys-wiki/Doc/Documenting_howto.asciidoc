@@ -1,0 +1,183 @@
+Documentation related to Chillisystems documentation framework
+==============================================================
+Adam Hamsik <adam.hamsik@chillisys.com>
+v1.0, August 2010:
+Initial proposal version.
+
+== Documenting Overview
+
+Main point of Documentation is work as a library to enable information storing, sharing and make 
+them easily searchable.
+
+We generally store 2 types of documentation and that is 
+
+I Documentation related to some project, bid or internal knowledge documentation. 
+  Documentation should be stored on central repository
+
+II Documentation related to particular server 
+   Documentation should be stored on a server and it's content should be pushed to main repo.
+
+=== Project, bid knowledge related documentation 
+
+This contains all information related to a project like IP addresses, login name, 
+server name, password names. Description of customer related setup, all design 
+decision made during the installation and many more.
+
+From these files customer facing documents are created, which means that they need to be written, 
+checked and formatted properly(use company logos etc.). Server related documentation  may be later 
+included in this file as appendix.
+
+ALl documents are stored in a git repository on main chillisystems server 
+***habanero.chillisys.com*** repository is called chillisys-doc. All doc  in chillisys-doc repository should have same suffix .txt .
+
+=== Server Documentation
+
+Because administrating a server is a very dynamic process we need to have way how to keep our 
+knowledge about all servers organised. We need to be able to keep list of made changes on server, 
+to have keep actual info about server software, hardware and simple setup on server.
+
+Main part of this documentation should work as a structured notebook for Chillisystems administrators 
+to write and organise information, hints, simple problems on a server in a way by which they can be 
+found be other admin.
+
+Server related documentation is stored in /etc/chillisys/doc
+
+It contains these files:
+
+* Changelog
+* Descr
+* Setup
+
+Changelog file contains log of all changes made on server after date when it was mark as in 
+production or after date when it was given to customer for usage.
+
+.Example Changelog file
+--------------------------------------
+
+Production date: 10.09.2010
+
+Changelog:
+
+Date: 10.09.2010
+User: haad
+Descr: Add new ip address alias to eth0.
+Tested: Try to ping address 10.1.1.2
+Needed Reboot: no
+
+--------------------------------------
+
+Descr file contains basic description of server, where it can allow new administrator to easily find 
+sw, hw, os and all needed info. This File should be automatically generated each day by predefined 
+script.
+
+.Example Descr file
+--------------------------------------
+
+Server Name: habanero.chillisys.com
+Installed OS: Gentoo Linux 
+Installed OS version: linux-2.6.31
+Server Support Level: 24/7
+
+Setup Description: 
+	Disk setup: [partitions, disks, LVM, Raid]
+	Network setup: [ip addresses, routes, firewalls, vpns, etc.]	
+
+Installed software list:
+	[List of installed software]
+	
+Installed hardware list:
+	[List of installed hw, and needed firmware versions]
+	
+--------------------------------------
+
+Setup file should be used as structured notebook for chillisystems administrators to be able to 
+document basic tasks on server. This file should be used as first line of help, if there is some 
+problem on server and chillisystems support needs to fix it.
+
+.Example Setup file
+--------------------------------------
+
+Administration
+
+Server: Mysql
+Descr: Under heavy load mysql sometimes deadlocks, heave restart of mysql server is needed then. Use 
+/etc/init.d/mysql to restart it. Don't forget to restart web server, too because customer web app 
+can't reinitialise lost mysql server connection.
+Solution: Restart mysql, apache with /etc/init.d/[mysql|apache] restart
+
+Server: IPMI
+Descr: This server can be in case of emergency accessed with ipmi console by connecting to ipmi ip 
+address 10.1.1.2 and port 9874 with telnet command from different server in this network.
+Solution: Connect to server with ipmitool -......
+
+Problems
+
+Server: Network/DHCP
+Descr: We are forced to use dhcp to get server IP address, after lease time exceed we see problems 
+with server /etc/resolv.conf file which is updated by dhcp to include ISP dns addresses. This make
+our .local dns names unresolvable which breaks some of our internal daemons.
+Solution: Replace /etc/resolv.conf with /etc/resolv.conf.orig and restart bind server.
+
+--------------------------------------
+
+== Chillisys Documentation Store Overview
+
+This framework was designed with these goals in mind:
+
+* Allow easy compilation of plain text written documents to printable and web formats
+* Make tracking changes in documents easy, thanks to used VCS
+* Make documenting of our internal knowledge as simple as possible
+* Make cooperation of teams on same file easier
+
+I have selected ***asciidoc*** documenting framework because it great flexibility, it's huge supports 
+of different output formats and for low number of needed dependiences. It's written in python which 
+is installed on all working servers these days. Main tree of Chillisys-doc framework contains these 
+files/dirs. 
+
+.Notice
+For PDF output we use xsltproc libraries and jave based Apache FOP XSL-FO tool. These are the only 
+external dependiences of chillisys-doc except asciidoc tool itself.
+
+--------------------------------------
+
+drwxr-xr-x   7 haad  501   238 Sep  8 01:19 Conf <1>
+drwxr-xr-x   6 haad  501   204 Sep  7 23:45 Customers <2>
+drwxr-xr-x  12 haad  501   408 Sep  8 01:18 Doc <3>
+-rw-r--r--@  1 haad  501   542 Sep  5 03:10 README
+-rw-r--r--@  1 haad  501  1201 Sep  5 12:57 Rakefile <4>
+-rw-r--r--@  1 haad  501   853 Sep  5 23:55 TODO 
+drwxr-xr-x   4 haad  501   136 Sep  8 01:19 bin <5>
+-rw-r--r--   1 haad  501  2367 Sep  8 01:19 chillisysdoc.rake <6>
+drwxr-xr-x   7 haad  501   238 Sep  7 22:56 www <7>
+
+--------------------------------------
+
+<1> Conf directory contains all needed config files, XSL stylesheets and templates used during 
+	document compilation.
+<2> Customers direcotry contains names of customers with their documentation related files there.
+<3> Doc directory contains Chillisystems internal documentaion files in a same way like Customers
+<4> Chillisys-doc framework uses ruby based rake build system to build whole documentation tree and
+	and for other automated tasks. Wich can be run from server git repo commit hook.
+<5> bin directory contains all binaries used during build, and usage tasks.
+<6> This file is a Rake library used by all Doc dir Rakefiles e.g. Customer/Innovatrics/Rakefile
+<7> After rake install task finish all documentation files are installed here and web server may be 
+	configured to server this dir.
+
+=== HTML output
+
+Html output is done by converting asciidoc source by asciidoc tool to html output directly all htmls, 
+uses same css located in '''Conf/chillisysdoc/css/'''. All styles/images/javescript code are included 
+in file so result do not have any external dependencies. If file needs to customise html css style 
+sheet, it can create file called '''filename.css''' in local css directory and include all needed 
+local modifications there. See [bin/gendoc.sh] for more information.
+
+=== PDF output
+
+PDF output is generated by converting asciidoc source to docbook stylesheet, which is late converted 
+to xsl-fo file and by fop translated to PDF. See [bin/gendoc.sh] for more information.
+
+=== Building documentation on server
+
+Automated building of documentation on server is done by changed git repository post update hook 
+which starts rake install task to build / install new version of documentation.
+

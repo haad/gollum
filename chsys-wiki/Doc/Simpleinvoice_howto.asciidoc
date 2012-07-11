@@ -1,0 +1,24 @@
+Documentation related to siple invoice system
+==========================================
+Marian Schmotzer <marian.schmotzer@chillisys.com>
+v1.0, December 2010:
+Initial proposal version.
+
+== Rutine tasks 
+Before any database update , backup database.
+
+=== New year tasks
+
+Adjust invoice id at start of new year.
+First log into database 
+mysql --user simple_invoices --database simple_invoices
+
+Then update invoice index counter 
+
+mysql> update si_index set id=yy000 where id=ooooo;
+
+ooooo - is number of last invoice
+yy - are last two digits of new year , example for year 2011 it is 11
+
+Next issued invoice will have number yy001.
+

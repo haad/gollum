@@ -1,0 +1,117 @@
+Blumenbecker file server documentation
+=======================================
+Marian Schmotzer <marian.schmotzer@chillisys.com>
+v1.0 November 2010:
+
+== General information
+|==============================================
+|**Procesor** 	   : | 2 cores of Intel(R) Xeon(R) CPU 5130  @ 2.00GHz
+|**Main memory**    : |	2 Gb
+|**Virtualization** : | N/A	
+|**OS**             : | Gentoo linux
+|**Device type	    : | server 		
+|**State**	   : |in production 
+|**SLA**	   : | 24x7 monitoring
+|resolve	    | 48
+|Downtime contact  :| Andrej Schwarc
+|		    | schvarc@blumenbecker.sk
+|		    | 0907736926
+|==============================================
+
+**Relations**: None
+
+=== Storage preferences 
+
+|=============================================
+|**Raid** : | Raid 5 , hardware (/dev/sda)
+|**Lvm**  : | Yes
+|PV	    | sda4
+|VG	    | name vg01
+|LV	    | LV names: usr,tmp,swap,var,data(user data)
+|LV home    | /home
+|LV usr	    | /usr
+|LV tmp     | /tmp
+|LV var     | /var
+|LV data    | /var/data
+|NFS volume | /mnt/backup (viz network special)
+|=============================================
+
+=== Network preferences
+
+|=============================================
+|**eth0** : | 
+|IP 	    | 192.168.129.12
+|MAC 	    | 00:1d:09:11:86:1c
+|**DNS** :  | fileserver.blumenbecker.sk(internal)
+|**Special**:| nfs volume mounted from remote location(192.168.3.126)to perform backups
+|	     | default static route defined in /etc/conf.d/staticroute 
+|=============================================
+
+|=============================================
+|**eth1** : | 
+|IP 	    | n/a
+|MAC 	    | 00:1d:09:11:86:1e
+|**DNS** :  | 
+|**Special**:| 
+|=============================================
+
+[options="header"
+|=============================================
+2+ |Remote access 
+|IPMI(SOL)  | Access with ipmitools to server management and console
+|IP 	    | 192.168.254.3
+|User       | root
+|**DNS** :  | N/A
+|**Special**:| Special subnet reachable only from firewall.blumenbecker.sk
+|=============================================
+=== Installed programs/services
+
+
+[options="header"]
+|=============================================
+2+| Samba
+|Descr      | Linux to windows file and domain services
+|Function   | Provide filesharing to windows clients,provide windows logon domain
+|Components | N/A
+|Special    | wins server is in remote location CZ, when ipsec connection goes down
+|	    | strange problems raise up (windows clients cannot be added to domain,etc)
+|=============================================
+
+[options="header"]
+|=============================================
+2+| webmin
+|Descr      | Server webmanagement
+|Function   | Used by customer to manage users/PCs 
+|Components | n/a
+|Special    | Listens on port 10000, to use must be allowed in it 
+|=============================================
+
+[options="header"]
+|=============================================
+2+| postfix 
+|Descr      | Mail distribution system
+|Function   | Sending mail notifications from os, audit and monitoring tools
+|Components | n/a
+|Special    | Listens only on localhost
+|=============================================
+
+[options="header"]
+|=============================================
+2+| proftpd
+|Descr | ftp daemon
+|Function   | allow remote users to access data in /var/data/ftp/
+|Components | n/a
+|Special    | Remote user must be in group ftpusers , 
+|	    | tls cannot be turned on(ftp dont working from remote sites) 
+|=============================================
+
+[options="header"]
+|=============================================
+2+| nfs
+|Descr | Nfs server/client
+|Function   | nfs server to mail.blumenbecker.sk to perform backups
+|	    | nfc client mounts remote nfs from backup location
+|Components | n/a
+|Special    | 
+|=============================================
+=== Special

@@ -1,0 +1,175 @@
+Chillisystems Server Setup guide
+==================================
+Adam Hamsik <adam.hamsik@chillisys.com>
+v1.0, August 2010:
+Initial proposal version.
+
+== Server installation manual
+
+=== Basic install rules
+
+Every installed server must follow these specifications:
+
+* _Default filesystem_:
+ext4
+
+* _Volume groups (optional)_:
+if only one volume group is used it must have name vg01
+if using multiple volume groups, use vgsys (for system partitions) vgdata (for user data if using ) 
+
+* _Software raid (optional)_:
+use only partitions as parts of array
+use md device number which corresponds with partition number of
+used partitions e.g. sda1 and sdb1 are in device md1
+
+* _Every installation must have these software packages_:
+
+-------
+grub 
+gentoo-sources 
+syslog-ng 
+vixie-cron 
+aide 
+postfix
+sudo
+screen 
+nagios 
+nagios-nrpe
+denyhosts
+vim
+ipmitool	
+ntp
+logrotate
+gentoolkit
+lvm2(if using lvm)
+mdadm(if using sw raid)
+-------
+
+=== Kernel compilation
+
+When configuring new kernel add as modules these subsystems:
+ipmi monitoring
+
+== Basic services
+
+Server must run at least these services:
+vixie-cron
+postfix (on localhost)
+sshd
+syslog-ng
+
+=== Cron entries 
+
+System must have configured these cron entries in root's crontab
+
+-------
+0       23      *       *       *       /etc/init.d/ntp-client restart
+0       23      *       *       5       /opt/chillisys/bin/gsms.sh
+-------
+
+=== Install chillisys tools and addons
+
+Chillisys tools are applications developed for internal usage on our _Gentoo Linux_ servers.
+
+==== Chilli systems tools installation
+
+===== Installation from Portage Overlay 
+
+We have our own gentoo portage overlay in gentoo-portage repository. It's available for rsync for anyone. Use command listed down to get chillisys-portage repository. 
+
+.Figure rsync command
+-----
+rsync -av --exclude=.git/ rsync://localhost/chillisys-portage .
+-----
+
+Our chillisys portage Overlay should be *always* placed to _/srv/chillisys-portage_ directory. After rsync we need to add PORTDIR_OVERLAY. All packages from chillisys-portage are kept in new category directory called chs-local this needs to be added to _/etc/portage/categories_.
+
+.Figure make.conf changes
+-----
+# echo 'PORTDIR_OVERLAY=/srv/chillisys-portage' >> /etc/make.conf
+
+haad@suser ~ $ cat /etc/make.conf
+# Source chillisys default make.conf
+source /etc/chillisys/make.conf
+
+PORTDIR_OVERLAY=/srv/chillisys-portage
+
+cat /srv/chillisys-portage/categories >> /etc/portage/categories
+haad@suser ~ $ cat /etc/portage/categories 
+chs-local
+-----
+
+chillisys tools are masked experimental which means that we need to add ACCEPT_KEYWORDS=~$(uname -m) to 
+
+.Figure emerge chillisys-tools
+----
+cat /etc/portage/packages.keywords
+chs-local/chillisys ~amd64
+
+ACCEPT_KEYWORDS=~$(uname -m) emerge chillisys
+----
+
+Onetime build can be done with +ACCEPT_KEYWORDS=~$(uname -m) emerge chillisys+.
+
+==== Chilli systems tools configuration
+
+Chillisys tools are by default installed in to /opt/chillisys directory, symbolic link should be created from /opt/chillisys/etc/ to /etc/chillisys. 
+
+.Figure Chillisystems tools file list
+----
+-rw-r--r-- 1 root root  646 Oct 13 19:17 Changelog
+-rw-r--r-- 1 root root  120 Oct 10 23:05 Descr
+-rw-r--r-- 1 root root    0 Oct  9 19:10 Hacks
+-rw-r--r-- 1 root root   61 Oct  9 19:10 Setup
+-rw-r--r-- 1 root root  104 Oct  9 19:10 Todo
+drwxr-xr-x 2 root root 4096 Oct  9 19:10 aide
+drwxr-xr-x 2 root root 4096 Oct 10 23:23 conf
+drwxr-xr-x 2 root root 4096 Oct  9 19:10 cron.d
+drwxr-xr-x 3 root root 4096 Oct  9 19:10 local_conf
+-rw-r--r-- 1 root root  816 Oct  9 19:10 make.conf
+drwxr-xr-x 2 root root 4096 Oct  9 19:10 profile.d
+drwxr-xr-x 2 root root 4096 Oct  9 19:10 ssh
+drwxr-xr-x 2 root root 4096 Oct  9 19:10 syslog
+
+haad@suser /etc/chillisys $ ls -al local_conf/
+-rw-r--r-- 1 haad  501   196 Mar 21 12:38 aide.conf
+-rw-r--r-- 1 haad  501  8158 Jan 31 14:43 denyhosts.conf
+-rw-r--r-- 1 haad  501   631 Jan  2 01:03 make.conf
+drwxr-xr-x 5 haad  501   170 Jan  2 01:03 portage
+-rw-r--r-- 1 haad  501   274 Jan  2 01:03 syslog-ng.conf
+-----
+
+_/etc/chillisys/local_conf_ contains all configuration files installed outside of /etc/chillisys directory. 
+
+.Figure Chillisystems tools file list
+-----
+cp /etc/chillisys/local_conf/make.conf /etc/make.conf
+cp /etc/chillisys/local_conf/syslog_ng.conf /etc/syslog-ng/syslog-ng.conf
+cp -R /etc/chillisys/local_conf/portage /etc/portage
+
+ln -s /etc/chillisys/cron.d/chillisys /etc/cron.d/chillisys
+
+ln -s /etc/chillisys/profile.d/chillisys.sh /etc/profile.d/chillisys.sh
+-----
+
+==== Chilli systems tools dev
+
+After every change in repository packages or in ebuild we need to regenerate Manifest file here with
+
+ebuild /srv/chillisys-portage/chs-local/*/chillisys-*.ebuild digest
+
+
+=== Other system changes
+
+Add mail allias from root to support@chillisys.com.  
+This means to add lines
+
+-------
+root: support@chillisys.com
+-------
+
+to file /etc/mail/aliases. And issue command newaliases.
+
+== Moving to production
+
+Please follow and finish all question in /etc/chillisys/Changelog before server is moved to production.

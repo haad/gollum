@@ -1,0 +1,188 @@
+Innovatrics automated Ubuntu instalation project documentation
+==============================================================
+Marian Schmotzer <marian.schmotzer@chillisys.com>
+v0.9, January 2011: Initial proposal version.
+
+== Project goals 
+
+Initial goals in this project :
+
+* Automaticly install Ubuntu with predefined configuration 
+  after cd/usb is attached and pc rebooted
+
+Predefined configuration
+
+* Run preexec/postexec script
+
+* Install standard packages including X window,excluding office 
+
+* disk layout : / - 40Gb , rest lvm and lv mounted to /srv
+
+* predefined root password
+
+* network configuration using dhcp
+
+
+== Automated instalation options
+
+There are two options how to install Ubuntu without user intervention
+
+1. Preseeding questions
+
+2. Kickstart from RedHat linux
+
+=== Preseeding questions
+
+Basic idea of this method is to provide answers to instaler questions.
+This answers are all in one configuration file, which is added as a
+boot argument to installer.
+This method is used in newer Ubuntu instalations as default method.
+There isn't any gui tool available yet, to create config file.
+
+=== Using kickstart
+
+This is port of RedHat kickstart instaltion method. In configuration filei there
+are options to install new system. Configuration file is provided to a bootloader 
+during boot time. 
+This method is not fully automatic, Ubuntu installer will need some
+information from user,therefore is used in combination with preseeding metod.
+In newer instalations is not prefered method. 
+There is gui tool to create configuration file, but some steps must be done 
+manualy by editing config file.
+
+== Realization
+
+In this case is better method preseeding, because it creates fully automatic 
+instlation based on one configuration file. It is
+newer method and it will be supported from latest release of Ubuntu.
+
+Create instalation cd image with customized bootloader setup (to let 
+bootloader provide custom boot paramenets). In this step isolinux configuration
+files will be customized.
+
+Create configuration preseeding/kickstart configuration file with
+wanted parameters. Configuration file will be created and placed in
+chsys directory on cd.
+
+Test instalation,customer add comments or/and reconfiguration options
+Cd image will be send to customer to test if everything works as was requested.
+
+Create usb from iso image
+
+=== Steps to follow
+
+System where you will create cd must have following packages instaled:
+squashfs-tools and genisoimage
+
+First of all you need to copy files from install cd to disk. 
+Mount image, create directory and copy files frim cd 
+mkdir -p cd_dir
+mount -o loop iso_image.iso /mnt/
+rsync -a /mnt/ cd_dir
+[NOTE]
+Don't use cp this will cause problem during building iso.
+
+Next step is to create or change existing preseeding file chillisys/default.cfg.
+(if you are using one from repository remove passwords from it).
+
+If you need also to remove or add packages you must update squashfs disk.
+
+[NOTE]
+You can do this by script after first system boot.
+
+==== Customize squashfs
+
+[NOTE]
+This is only short version of manual on this url
+https://help.ubuntu.com/community/LiveCDCustomization
+
+Create directory and extract squashfs file casper/filesystem.squashfs with command (use it in destination directory)
+unsquashfs cd_dir/casper/filesystem.squashfs
+
+Mount neccessary filesystems in extracted squashfs and chroot into it:
+mount --bind /dev/ squash_fs_dir/dev
+chroot squash_fs_dir
+mount -t proc none /proc
+mount -t sysfs none /sys
+mount -t devpts none /dev/pts
+
+If you need add/remove packages use folowing commands:
+
+To view installed packages by size
+dpkg-query -W --showformat='${Installed-Size}\t${Package}\n' | sort -nr | less
+
+When you want to remove packages remember to use purge
+aptitude purge package-name
+
+If you installed software, be sure to run
+rm /var/lib/dbus/machine-id
+rm /sbin/initctl
+dpkg-divert --rename --remove /sbin/initctl
+
+Exit change root.
+
+Regenerate manifest
+chmod +w cd_dir/casper/filesystem.manifest
+chroot squash_fs_dir dpkg-query -W --showformat='${Package} ${Version}\n' > cd_dir/casper/filesystem.manifest
+cp cd_dir/casper/filesystem.manifest cd_dir/casper/filesystem.manifest-desktop
+sed -i '/ubiquity/d' cd_dir/casper/filesystem.manifest-desktop
+sed -i '/casper/d' cd_dir/casper/filesystem.manifest-desktop
+
+Adjust fs size
+printf $(sudo du -sx --block-size=1 squash_fs_dir | cut -f1) > cd_dir/casper/filesystem.size
+
+Calculate md5 sum
+rm md5sum.txt
+find -type f -print0 | sudo xargs -0 md5sum | grep -v isolinux/boot.cat | sudo tee md5sum.txt
+
+After all changes are done use 
+mksquashfs squashfs_root_dir cd_dir/casper/filesystem.squashfs 
+to create new squashfs file.
+
+
+==== Creating CD/DVD or USB stick
+
+To create usb stick.
+Create regular usb bootable stick from Ubuntu 10.04 iso.
+Mount it. 
+Now you must change bootloader (isolinux files) let it load preseeding file:
+Change files:
+syslinux/syslinux.cfg 
+syslinux/menu.cfg
+syslinux/text.cfg
+You can find context of this files in git repository in directory usb/syslinux.
+
+To create cd/dvd.
+Copy context of cd into your disk as was shown in previous chapter.
+Now you must change bootloader (isolinux files) let it load preseeding file:
+Change files:
+isolinux/isolinux.cfg 
+isolinux/menu.cfg
+isolinux/text.cfg
+You can find context of this files in git repository in cd/syslinux.
+
+Next step is to create or change existing preseeding file chillisys/default.cfg.
+(if you are using one from repository remove passwords from it).
+
+[NOTE]
+If you are not from Chilli Systems you preseeding file don't contains any 
+password.
+
+To make cd run custom commands after first boot you must also copy this files to cd:
+* postinstall.sh - copy necessary init scripts during instalation to new system.
+
+* scriptrun - init script, it is started at runlevels 3,4,5.It starts custom scripts.
+
+Place your scripts into scripts directory in cd/usb root. All scripts will run after
+first system boot under user root in alphabetic order. After all scripts finish,
+directory containing it is moved into /tmp directory. Output from scripts you can find
+at /var/log/scriptrun.log log file.
+Best way is to copy scripts directory from repository, because it contains also chilli 
+systems customization scripts.
+
+[NOTE]
+All this files are in git repository to create autoinstall cd/usb you need only
+copy context of cd/usb directory(in repository) to root directory of cd/usb.
+For cd instalation, need also create cd , for example by makecd script from scripts 
+directory in repository
+

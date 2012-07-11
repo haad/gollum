@@ -1,0 +1,138 @@
+Innovatrics backup server documentation
+=======================================
+Marian Schmozer <marian.schmotzer@chillisys.com>
+v1.0 September 2010:
+
+== General information
+|==============================================
+|**Procesor** 	   : | 2 cores of Intel(R) Core(TM)2 Quad CPU Q9400  @ 2.66GHz
+|**Main memory**    : |	512 Mb	
+|**Virtualization** : | XenServer Virtual Host		
+|**OS**             : | Gentoo linux
+|**Device type	    : | server 		
+|**State**	   : |in production 
+|**SLA**	   : | 24x7 monitoring
+|resolve	    | 24 
+|==============================================
+
+**Relations**: Virtual server hosted on xenserver.innovatrics.local
+
+=== Storage preferences 
+
+|=============================================
+|**Raid** : | Raid 1 (mirroring) md0 device on host xenserver.innovatrics.local, from disks sdb1 and sdd1
+|**Lvm**  : | Lvm on host xenserver.innovatrics.local  
+|PV	    | PV is on md0 RAID device
+|VG	    | name VG_XenStorage-aca5afe3-18c0-8cc6-69b8-e40e6d0fea82
+|LV	    | VHD-fb24f93f-02ec-4db7-bfe8-597f098efca6(xenserver console name backup_sys) exported in backup.innovatrics.local as sda
+|	    | VHD-74c0caac-0503-4540-842c-23819bcec0e0(xenserver console name backup_data) exported in backup.innovatrics.local as sdb
+|sda	    | sda1 - /boot
+|	    | sda2 - swap
+|	    | sda3 - /
+|sdb	    | sdb1 - /var/backup
+|=============================================
+
+=== Network preferences
+
+|=============================================
+|**eth0** : | 
+|IP 	    | 192.168.1.3 assigned by dhcp, but in dhcp server configuration reserved for backup.innovatrics.local  
+|MAC 	    | 42:84:e9:0e:50:b2
+|**DNS** :  | backup.innovatrics.local (192.168.1.3)
+|**Special**:| n/a
+|=============================================
+
+=== Installed programs/services
+
+
+[options="header"]
+|=============================================
+2+| Bacula
+|Descr      | Backup suite
+|Function   | Backup of remote clients more in backup section in Special section
+|Components | bacula-sd, bacula-fd, bacula-dir
+|Special    | Use bconsole command to get to command interface
+|=============================================
+
+[options="header"]
+|=============================================
+2+| postgresql 
+|Descr      | Database
+|Function   | Stores backup catalog(list of backuped files, jobs etc.)
+|Components | n/a
+|Special    | Listens only on localhost
+|=============================================
+
+[options="header"]
+|=============================================
+2+| postfix 
+|Descr      | Mail distribution system
+|Function   | Sending mail notifications from bacula, os, audit and monitoring tools
+|Components | n/a
+|Special    | Listens only on localhost
+|=============================================
+
+[options="header"]
+|=============================================
+2+| apache httpd
+|Descr | Http server
+|Function   | Provide webaplication bweb - gui interface for bacula 
+|Components | n/a
+|Special    | Added cgi-support in default_vhost.include config file
+|**bweb webapp** | gui interface for bacula
+|Function   | Provide backup jobs monitoring,files restoring , jobs running
+|Components | n/a
+|URL	    | http://192.168.1.3/
+|Special    | Not in package system , instaled in these locations:
+|	    | /var/www/localhost/htdocs/bweb/
+|	    | /etc/bacula/
+|	    | /usr/bin/brestore.pl
+|	    | /usr/share/brestore
+|=============================================
+
+=== Special
+
+==== Backups
+
+[options="header"]
+|=============================================
+2+| Backup clients 
+|**xenserver.innovatrics.local**| Bacula instaled from rpm archives in /root/backup_instalation/, 
+|				| entry 192.168.1.3 backup.innovatrics.local in /etc/hosts
+|jobs| XenServer, XenServerIsos 
+|**server.innovatrics.local**| 
+|jobs			     |Server , ServerData
+|**backup.innovatrics.local**| 
+|jobs			     | BackupCatalog
+|=============================================
+
+[options="header"]
+|=============================================
+2+| Backup jobs
+|**XenServer**| Backups whole xenserver os
+|pools	      | xenserver
+|shedule      | full - first friday in month at 23.10
+|	      | incremental - every friday at 23.10
+|**XenServerIsos**| Backups logical volumes with virtual hosts data only from VG_XenStorage-f065e638-9585-f66a-e916-e641b73d82fb volumegroup
+| pools| xenserver
+|shedule      | full - first friday in month at 23.10
+|	      | incremental - every friday at 23.10
+|**Server**| Backups whole server os ,but without /var/data directory
+| pools     |server 
+|shedule      | full - first friday in month at 23.10
+|	      | incremental - every friday at 23.10
+|**ServerData**| Backups /var/data directory, user data are stored here 
+| pools    | server
+|shedule      | full - every friday at 23.10
+|	      | incremental - every day at 23.10
+|=============================================
+
+[options="header"]
+|==============================================
+2+| Pools
+|**server**    | 8x50Gb volumes , compression=on
+|**xenserver** | 9x50Gb volumes , compression=on
+|==============================================
+
+Backuped data are stored in /var/backup directory. Data are stored for one month periode.
+
