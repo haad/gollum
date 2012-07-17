@@ -12,6 +12,16 @@ require 'gollum/frontend/views/has_page'
 require File.expand_path '../uri_encode_component', __FILE__
 require File.expand_path '../helpers', __FILE__
 
+# Fix to_url
+class String
+  alias :upstream_to_url :to_url
+  # _Header => header which causes errors
+  def to_url
+    return self if ['_Header', '_Footer', '_Sidebar'].include? self
+    upstream_to_url
+  end
+end
+
 # Run the frontend, based on Sinatra
 #
 # There are a number of wiki options that can be set for the frontend
@@ -100,7 +110,8 @@ module Precious
         else
           @page = page
           @page.version = wiki.repo.log(wiki.ref, @page.path).first
-          @content = page.raw_data
+          raw_data = page.raw_data
+          @content = raw_data.respond_to?(:force_encoding) ? raw_data.force_encoding('UTF-8') : raw_data
           mustache :edit
         end
       else
