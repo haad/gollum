@@ -105,6 +105,28 @@ module Gollum
       changed = false
 
       # process rest of folders
+<<<<<<< HEAD
+      0.upto(sorted_folders.size - 1) do | index |
+          page =  @pages[ sorted_folders[ index ][1] ]
+          path = page.path
+          folder = ::File.dirname path
+
+          tmp_array = folder.split('/')
+
+          0.upto(tmp_array.size - 1) do |index|
+                 if cwd_array[index].nil? or changed then
+                  html += new_sub_folder tmp_array[index]
+                  next
+              end
+
+              if  cwd_array[index] != tmp_array[index] then
+                  changed = true
+                  index.upto(cwd_array.size - 1) do |i|
+                      html += end_folder
+                  end
+                  html += new_sub_folder tmp_array[index]
+              end
+=======
       (0...sorted_folders.size).each do | index |
           page =  @pages[ sorted_folders[ index ][ 1 ] ]
           path = page.path
@@ -125,6 +147,7 @@ module Gollum
               end
               html += new_sub_folder tmp_array[ index ]
             end
+>>>>>>> gollum-upstream/master
           end
 
           html += new_page page
