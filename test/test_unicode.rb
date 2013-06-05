@@ -15,17 +15,10 @@ context "Unicode Support" do
     FileUtils.rm_rf(@path)
   end
 
-  test "create and read non-latin page" do
-    @wiki.write_page("test", :markdown, "# 한글")
-
-    page = @wiki.page("test")
-    assert_equal Gollum::Page, page.class
-    assert_equal "# 한글", utf8(page.raw_data)
-  end
-
-  test "unicode with existing format rules" do
-    @wiki.write_page("test", :markdown, "# 한글")
-    assert_equal @wiki.page("test").path, @wiki.page("test").path
+  test "uri encode" do
+    c = '한글'
+    assert_equal '%ED%95%9C%EA%B8%80', encodeURIComponent(c)
+    assert_equal '%ED%95%9C%EA%B8%80', CGI::escape(c)
   end
 end
 
