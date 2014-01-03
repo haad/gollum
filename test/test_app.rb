@@ -29,13 +29,13 @@ context "Frontend" do
     # spaces are converted to dashes in URLs
     # and in file names saved to disk
     # urls are not case sensitive
-    assert_equal 'title-space', 'Title Space'.to_url
+    assert_equal 'Title-Space', 'Title Space'.to_url
 
     # ascii only file names prevent UTF8 issues
     # when using git repos across operating systems
     # as this test demonstrates, translation is not
     # great
-    assert_equal 'm-plus-f', 'μ†ℱ'.to_url
+    assert_equal 'm-plus-F', 'μ†ℱ'.to_url
   end
 
   test "utf-8 kcode" do
@@ -253,7 +253,7 @@ context "Frontend" do
   test "creates pages with escaped characters in title" do
     post "/create", :content => 'abc', :page => 'Title with spaces',
       :format => 'markdown', :message => 'foo'
-    assert_equal 'http://example.org/title-with-spaces', last_response.headers['Location']
+    assert_equal 'http://example.org/Title-with-spaces', last_response.headers['Location']
     get "/Title-with-spaces"
     assert_match /abc/, last_response.body
   end
@@ -278,7 +278,7 @@ context "Frontend" do
     post "/create", :content => 'abc', :page => 'Home', :path => '/foo/',
       :format => 'markdown', :message => 'foo'
 
-    assert_equal "http://example.org/foo/home", last_response.headers['Location']
+    assert_equal "http://example.org/foo/Home", last_response.headers['Location']
 
     follow_redirect!
     assert last_response.ok?
@@ -429,7 +429,7 @@ context "Frontend" do
     assert_equal "INITIAL", page2.raw_data.strip
   end
 =end
-
+=begin
   test "cannot revert conflicting commit" do
     page1 = @wiki.page('A')
 
@@ -440,6 +440,7 @@ context "Frontend" do
     page2 = @wiki.page('A')
     assert_equal page1.version.sha, page2.version.sha
   end
+=end
 =begin
   # redirects are now handled by class MapGollum in bin/gollum
   # they should be set in config.ru
@@ -502,6 +503,36 @@ context "Frontend" do
     get page
     assert_match /custom.js/, last_response.body
     Precious::App.set(:wiki_options, { :js => nil })
+  end
+
+  test "show edit page with header and footer and sidebar of multibyte" do
+    post "/create",
+      :content => 'りんご',
+      :page => 'Multibyte', :format => :markdown, :message => 'mesg'
+
+    post "/edit/Multibyte",
+      :content => 'りんご', :header => 'みかん', :footer => 'バナナ', :sidebar => 'スイカ',
+      :page => 'Multibyte', :format => :markdown, :message => 'mesg'
+
+    get "edit/Multibyte"
+
+    assert last_response.ok?
+    assert_match /りんご/, last_response.body
+    assert_match /みかん/, last_response.body
+    assert_match /バナナ/, last_response.body
+    assert_match /スイカ/, last_response.body
+  end
+
+  test "add noindex tags to history pages" do
+    get "A"
+
+    assert last_response.ok?
+    assert_no_match /meta name="robots" content="noindex, nofollow"/, last_response.body
+
+    get "A/fc66539528eb96f21b2bbdbf557788fe8a1196ac"
+
+    assert last_response.ok?
+    assert_match /meta name="robots" content="noindex, nofollow"/, last_response.body
   end
 
   def app
@@ -578,6 +609,12 @@ context "Frontend with lotr" do
     assert_match /Bilbo Baggins/, last_response.body
   end
 
+  test "streaming files to browser" do
+    get "/Data.csv"
+    assert last_response.ok?
+    assert last_response.headers.include? 'Content-Disposition'
+  end
+
   # base path requires 'map' in a config.ru to work correctly.
   test "create pages within sub-directories using base path" do
     Precious::App.set(:wiki_options, { :base_path => 'wiki' })
@@ -606,13 +643,13 @@ context "Frontend with lotr" do
   test "create pages within sub-directories" do
     post "/create", :content => 'big smelly creatures', :page => 'Orc',
       :path => 'Mordor', :format => 'markdown', :message => 'oooh, scary'
-    assert_equal 'http://example.org/Mordor/orc', last_response.headers['Location']
+    assert_equal 'http://example.org/Mordor/Orc', last_response.headers['Location']
     get "/Mordor/Orc"
     assert_match /big smelly creatures/, last_response.body
 
     post "/create", :content => 'really big smelly creatures', :page => 'Uruk Hai',
       :path => 'Mordor', :format => 'markdown', :message => 'oooh, very scary'
-    assert_equal 'http://example.org/Mordor/uruk-hai', last_response.headers['Location']
+    assert_equal 'http://example.org/Mordor/Uruk-Hai', last_response.headers['Location']
     get "/Mordor/Uruk-Hai"
     assert_match /really big smelly creatures/, last_response.body
   end
@@ -621,11 +658,11 @@ context "Frontend with lotr" do
     post "/create", :content => 'big smelly creatures', :page => 'Orc',
       :path => 'Mordor', :format => 'markdown', :message => 'oooh, scary'
 
-    assert_equal 'http://example.org/Mordor/orc', last_response.headers['Location']
+    assert_equal 'http://example.org/Mordor/Orc', last_response.headers['Location']
 
     post "/edit/Mordor/Orc", :content => 'not so big smelly creatures',
       :page => 'Orc', :path => 'Mordor', :message => 'minor edit'
-    assert_equal 'http://example.org/Mordor/orc', last_response.headers['Location']
+    assert_equal 'http://example.org/Mordor/Orc', last_response.headers['Location']
 
     get "/Mordor/Orc"
     assert_match /not so big smelly creatures/, last_response.body

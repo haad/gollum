@@ -13,13 +13,17 @@ require 'gollum/views/has_page'
 
 require File.expand_path '../helpers', __FILE__
 
+#required to upload bigger binary files
+Gollum::set_git_timeout(120)
+Gollum::set_git_max_filesize(190 * 10**6)
+
 # Fix to_url
 class String
   alias :upstream_to_url :to_url
   # _Header => header which causes errors
   def to_url
     return nil if self.nil?
-    upstream_to_url :exclude => ['_Header', '_Footer', '_Sidebar']
+    upstream_to_url :exclude => ['_Header', '_Footer', '_Sidebar'], :force_downcase => false
   end
 end
 
@@ -137,12 +141,58 @@ module Precious
         else
           @page = page
           @page.version = wiki.repo.log(wiki.ref, @page.path).first
-          raw_data = page.raw_data
-          @content = raw_data.respond_to?(:force_encoding) ? raw_data.force_encoding('UTF-8') : raw_data
+          @content = page.text_data
           mustache :edit
         end
       else
         redirect to("/create/#{encodeURIComponent(@name)}")
+      end
+    end
+
+    post '/uploadFile' do
+      wiki = wiki_new
+
+      unless wiki.allow_uploads
+        @message = "File uploads are disabled"
+        mustache :error
+        return
+      end
+
+      if params[:file]
+        fullname = params[:file][:filename]
+        tempfile = params[:file][:tempfile]
+      end
+
+      dir = 'uploads'
+      ext = ::File.extname(fullname)
+      format = ext.split('.').last || 'txt'
+      filename = ::File.basename(fullname, ext)
+      contents = ::File.read(tempfile)
+      reponame = filename + '.' + format
+
+      head = wiki.repo.head
+
+      options = {
+        :message => "Uploaded file to uploads/#{reponame}",
+        :parent => wiki.repo.head.commit,
+      }
+      author = session['gollum.author']
+      unless author.nil?
+        options.merge! author
+      end
+
+      begin
+        committer = Gollum::Committer.new(wiki, options)
+        committer.add_to_index(dir, filename, format, contents)
+        committer.after_commit do |committer, sha|
+          wiki.clear_cache
+          committer.update_working_dir(dir, filename, format)
+        end
+        committer.commit
+        redirect to('/')
+      rescue Gollum::DuplicatePageError => e
+        @message = "Duplicate page: #{e.message}"
+        mustache :error
       end
     end
 
@@ -239,6 +289,8 @@ module Precious
       format       = params[:format].intern
       wiki = wiki_new
 
+      path.gsub!(/^\//, '')
+
       begin
         wiki.write_page(name, format, params[:content], commit_message, path)
 
@@ -250,15 +302,14 @@ module Precious
       end
     end
 
-    post '/revert/:page/*' do
-      wikip        = wiki_page(params[:page])
+    post '/revert/*/:sha1/:sha2' do
+      wikip        = wiki_page(params[:splat].first)
       @path        = wikip.path
       @name        = wikip.name
       wiki         = wikip.wiki
       @page        = wiki.paged(@name,@path)
-      shas         = params[:splat].first.split("/")
-      sha1         = shas.shift
-      sha2         = shas.shift
+      sha1         = params[:sha1]
+      sha2         = params[:sha2]
 
       commit = commit_message
       commit[:message] = "Revert commit #{sha1.chars.take(7).join}"
@@ -283,6 +334,7 @@ module Precious
       @mathjax = wiki.mathjax
       @h1_title = wiki.h1_title
       @editable = false
+      @allow_uploads = wiki.allow_uploads
       mustache :page
     end
 
@@ -336,6 +388,7 @@ module Precious
         @page = page
         @name = name
         @content = page.formatted_data
+        @version = version
         mustache :page
       else
         halt 404
@@ -401,11 +454,16 @@ module Precious
         @mathjax  = wiki.mathjax
         @h1_title = wiki.h1_title
         @bar_side  = wiki.bar_side
+        @allow_uploads = wiki.allow_uploads
 
         mustache :page
-      elsif file = wiki.file(fullpath)
-        content_type file.mime_type
-        file.raw_data
+      elsif file = wiki.file(fullpath, wiki.ref, true)
+        if file.on_disk?
+          send_file file.on_disk_path, :disposition => 'inline'
+        else
+          content_type file.mime_type
+          file.raw_data
+        end
       else
         page_path = [path, name].compact.join('/')
         redirect to("/create/#{clean_url(encodeURIComponent(page_path))}")

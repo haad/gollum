@@ -7,6 +7,7 @@
   <link rel="stylesheet" type="text/css" href="{{base_url}}/css/dialog.css" media="all">
   <link rel="stylesheet" type="text/css" href="{{base_url}}/css/template.css" media="all">
   {{#css}}<link rel="stylesheet" type="text/css" href="{{base_url}}/custom.css" media="all">{{/css}}
+  {{#noindex}}<meta name="robots" content="noindex, nofollow" />{{/noindex}}
 
   <!--[if IE 7]>
   <link rel="stylesheet" type="text/css" href="{{base_url}}/css/ie7.css" media="all">
@@ -15,7 +16,7 @@
   <script>
       var baseUrl = '{{base_url}}';
       {{#page}}
-      var pageFullPath = '{{url_path}}';
+      var pageFullPath = '{{url_path_display}}';
       {{/page}}
   </script>
   <script type="text/javascript" src="{{base_url}}/javascript/jquery-1.7.2.min.js"></script>

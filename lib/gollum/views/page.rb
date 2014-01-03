@@ -35,8 +35,16 @@ module Precious
         first.authored_date.strftime(DATE_FORMAT)
       end
 
+      def noindex
+        @version ? true : false
+      end
+
       def editable
         @editable
+      end
+
+      def allow_uploads
+        @allow_uploads
       end
 
       def has_header
