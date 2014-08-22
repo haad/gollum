@@ -1,1 +1,1 @@
-rvm use ruby-1.9.2@chsys-doc --create
+rvm use ruby-2.1.1@inno-doc --create
